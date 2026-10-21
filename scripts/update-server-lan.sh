@@ -85,6 +85,8 @@ trap on_failure ERR
 # El contenido previo está respaldado; .env.production y datos no están versionados.
 code_updated=1
 g checkout -f -B main "$commit"
+g update-ref refs/remotes/origin/main "$commit"
+g branch --set-upstream-to=origin/main main
 chown -R administrador:administrador "$app"
 python3 - "$new_release" <<'PY'
 from pathlib import Path
