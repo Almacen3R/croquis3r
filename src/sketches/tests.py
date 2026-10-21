@@ -126,11 +126,38 @@ class ApiTests(TestCase):
         self.assertEqual(Sketch.objects.count(), 0)
 
     def test_save_and_load_rotated_wall_with_opening(self):
-        data = {**self.data,"document":document(wall(x2=3,y2=4),door())}
+        data = {**self.data,"document":document(wall(x2=3,y2=4),door(width=2))}
         created = self.post("/api/sketches/",data)
         self.assertEqual(created.status_code,201)
         loaded = self.client.get(f'/api/sketches/{created.json()["id"]}/').json()
         self.assertEqual(loaded["document"],data["document"])
+
+    def test_only_catalog_door_modules_can_be_saved(self):
+        for width in (1.5, 2, 3):
+            data = {**self.data, "document": document(wall(), door(width=width, offset=0))}
+            response = self.post("/api/sketches/", data)
+            self.assertEqual(response.status_code, 201, response.content)
+            self.assertEqual(response.json()["document"], data["document"])
+        for width in (.5, 1, .9, 2.5):
+            data = {**self.data, "document": document(wall(), door(width=width, offset=0))}
+            response = self.post("/api/sketches/", data)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("fuera de catálogo", response.json()["error"])
+        self.assertEqual(Sketch.objects.count(), 3)
+
+    def test_legacy_invalid_door_remains_readable_and_requires_explicit_correction(self):
+        legacy = document(wall(), door(width=.5))
+        sketch = Sketch.objects.create(name="Anterior", document=legacy)
+        url = f"/api/sketches/{sketch.pk}/"
+        self.assertEqual(self.client.get(url).json()["document"], legacy)
+        data = {**self.data, "document": legacy, "revision": 1}
+        response = self.client.put(url, json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        sketch.refresh_from_db()
+        self.assertEqual(sketch.document, legacy)
+        self.assertEqual(sketch.revision, 1)
+        data["document"] = document(wall(), door(width=1.5))
+        self.assertEqual(self.client.put(url, json.dumps(data), content_type="application/json").status_code, 200)
 
     def test_catalog_filters_inactive_and_estimate_rejects_them(self):
         self.article.active = False

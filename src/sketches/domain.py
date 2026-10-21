@@ -206,3 +206,11 @@ def calculate(document, articles):
                 "waste_percent": rule["waste_percent"], "unrounded": str(raw), "quantity": quantity})
     return {"items": list(totals.values()), "details": details, "warnings": warnings,
             "notice": "Estimación de prototipo. Reglas de ejemplo sin aprobación técnica; no es una cotización ni un plano constructivo."}
+
+
+def validate_door_catalog(document):
+    """Validate before saving; legacy documents remain readable without rewriting them."""
+    for obj in document["objects"]:
+        if obj["kind"] == "door" and number(obj["width"], "Módulo de puerta") not in {Decimal("1.5"), Decimal("2"), Decimal("3")}:
+            raise InvalidDocument(f'{obj.get("label", "Puerta")}: módulo fuera de catálogo. Elija Baño (1,50 m), Estándar (2 m) o Amplia (3 m). No se guardaron los cambios.')
+    return document

@@ -19,9 +19,9 @@ Las cantidades de bloques por paño de 10 cm **ya se confirmaron iguales** a las
 - Desarrollo local: SQLite en `db.sqlite3`.
 - Servidor LAN: `http://192.168.0.214:8013/`, PostgreSQL 18 exclusivo y contenedores `croquis3r-app-1` / `croquis3r-db-1`, ambos saludables. `/health/` devolvió 200 en la última comprobación. PostgreSQL está en uso, no solamente preparado.
 - Código servidor: `/opt/apps/croquis3r`; datos: `/data/projects/croquis3r`. El acceso SSH existente es válido para el servidor; su nombre de perfil no limita su uso a Inventariotec.
-- Cambios locales pendientes de desplegar: reglas del 21 de octubre (familias, puertas y asistente por metros) y corrección de identificadores sobre HTTP LAN.
+- Reglas del 21 de octubre (familias, puertas y asistente por metros) y corrección de identificadores sobre HTTP LAN: aplicadas en el servidor; se verificó el commit `43db872e4d48` y `/health/` correcto. La corrección adicional de selección/guardado de puertas descrita al final está pendiente de su actualización.
 - Git remoto: publicado en https://github.com/Almacen3R/croquis3r, rama `main`. Código, pruebas y documentación están versionados; datos y secretos se excluyen.
-- Actualización de producción: preparada mediante `scripts/update-server-lan.sh`, pendiente de ejecución con sudo y comprobación posterior.
+- Actualizaciones de producción: mediante `scripts/update-server-lan.sh`; la versión `43db872e4d48` fue aplicada por el usuario y comprobada por SSH.
 - Respaldos externos y Drive: pendientes de su etapa operativa; no se activaron tareas nuevas.
 
 ## Error de identificadores en HTTP LAN
@@ -35,3 +35,12 @@ Corrección local: usar el generador nativo cuando exista; en HTTP construir UUI
 Verificación: prueba real de navegador en un origen HTTP por IP privada, con `isSecureContext=false`, `randomUUID=undefined` y `getRandomValues=function`. Se reprodujo el error anterior y se generaron 10.000 UUID v4 válidos y distintos con la corrección; duplicar pared y abertura conservó sus vínculos. La página temporal solo sirvió datos ficticios, sin acceso a base de datos.
 
 No requiere migraciones ni cambios de PostgreSQL. No se cambiaron contenedores ni datos del servidor para esta corrección local.
+
+
+## Puertas: selección y validación de catálogo
+
+Corrección del 21 de octubre: el campo numérico de largo permitía guardar puertas de 0,50 m. Ahora se elige entre Baño (módulo 1,50 m), Estándar (2 m, opción inicial) y Amplia (3 m), tanto al colocar como al editar. Si la elegida no cabe, se informa sin sustituirla por otro tipo. Al estirar extremos solo se admiten esos tres módulos; el tipo se deriva de la medida y se muestra en el lienzo, la lista y las propiedades, independientemente del nombre personalizado.
+
+El servidor valida el catálogo al crear o actualizar croquis y plantillas completas. Los documentos anteriores se siguen leyendo sin modificarlos; si contienen una puerta fuera del catálogo, deben corregirse expresamente antes de guardar. El cálculo geométrico auxiliar conserva la lectura de medidas anteriores para poder ajustar una pared y después corregir su puerta. El modulador TicoBlock sigue indicando que esas puertas no son calculables.
+
+Verificación: 87 pruebas Django y 23 pruebas de geometría aprobadas, incluidas creación/actualización por API, preservación de documentos anteriores rechazados y arrastre de ambos extremos con y sin cuadrícula. En navegador se comprobó el cambio Estándar → Baño → Amplia y los rótulos visibles, usando un ejemplo sin guardar. Evidencia: `screenshots/puertas-catalogo.png`. No requiere migraciones ni importación de datos.

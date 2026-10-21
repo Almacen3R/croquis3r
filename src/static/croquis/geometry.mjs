@@ -163,7 +163,7 @@ export function editOpening(opening, wall, endpoint, distance, siblings=[], snap
   return {...opening,offset:rounded(start),width:rounded(width)};
 }
 
-export function placeOpening(wall, position, siblings=[], kind='window') {
+export function placeOpening(wall, position, siblings=[], kind='window', requestedWidth=null) {
   const at=Math.max(0,Math.min(length(wall),projectOnWall(position,wall)));
   let low=0,high=length(wall);
   for(const other of siblings.filter(o=>o.wall_id===wall.id)) {
@@ -172,7 +172,8 @@ export function placeOpening(wall, position, siblings=[], kind='window') {
     else if(other.offset>=at-1e-6)high=Math.min(high,other.offset);
   }
   const available=Math.floor((high-low+1e-6)/GRID_STEP)*GRID_STEP;
-  const width=kind==='door'?(available===3?3:available>=2?2:available>=1.5?1.5:0):Math.min(2,available);
+  const width=kind==='door'?(requestedWidth ?? (available===3?3:available>=2?2:available>=1.5?1.5:0)):Math.min(2,available);
+  if(kind==='door' && (![1.5,2,3].includes(width) || width>available+1e-6))return null;
   if(width<.5)return null;
   const offset=Math.max(low,Math.min(high-width,Math.round((at-width/2)/GRID_STEP)*GRID_STEP));
   return {offset:rounded(offset),width:rounded(width)};
@@ -222,4 +223,9 @@ export function duplicateObjects(objects, object) {
   }
   copy.offset = +(copy.offset + copy.width + 0.1).toFixed(3);
   return [copy];
+}
+
+// El tipo se deriva del módulo para evitar metadatos contradictorios.
+export function doorName(width) {
+  return ({1.5:'Puerta de baño',2:'Puerta Estándar',3:'Puerta Amplia'})[width] || 'Puerta fuera de catálogo · corregir';
 }

@@ -15,7 +15,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods
 
 from catalog.providers import get_catalog_provider
-from .domain import InvalidDocument, calculate, positive_int, validate_document
+from .domain import validate_door_catalog, InvalidDocument, calculate, positive_int, validate_document
 from .models import ObjectTemplate, Sketch, Attention
 from .attention import load_attention, saved_inputs, save_attention
 from .house_calculator import HouseCalculatorForm, RECIPES, VERSION, calculate_house
@@ -210,7 +210,7 @@ def sketches(request):
     if type(data.get("is_template", False)) is not bool:
         raise InvalidDocument("El indicador de plantilla debe ser booleano.")
     sketch = Sketch.objects.create(name=name(data), is_template=data.get("is_template", False),
-        document=validate_document(data.get("document"), articles_by_id()))
+        document=validate_door_catalog(validate_document(data.get("document"), articles_by_id())))
     return JsonResponse(serialize(sketch), status=201)
 
 
@@ -229,7 +229,7 @@ def sketch_detail(request, pk):
         return JsonResponse(serialize(sketch))
     data = payload(request)
     revision = positive_int(data.get("revision"), "Revisión")
-    document = validate_document(data.get("document"), articles_by_id())
+    document = validate_door_catalog(validate_document(data.get("document"), articles_by_id()))
     updated = Sketch.objects.filter(pk=pk, revision=revision).update(
         name=name(data), document=document, revision=revision + 1, updated_at=timezone.now())
     if not updated:

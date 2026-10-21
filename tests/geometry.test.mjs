@@ -171,3 +171,26 @@ test('identificadores conservan versión y variante UUID incluso con bits extrem
   assert.equal(uid({randomUUID:()=> 'native-id',getRandomValues:()=>{throw Error('No debería usarse');}}),'native-id');
   assert.throws(()=>uid({}),/navegador/);
 });
+
+
+test('crear puerta del tipo elegido nunca la reduce a otro tipo si no cabe',()=>{
+  for(const width of [1.5,2,3]) {
+    assert.equal(placeOpening(wall,{x:2,y:0},[],'door',width).width,width);
+    assert.equal(placeOpening({...wall,x2:width-.5},{x:0,y:0},[],'door',width),null);
+  }
+  for(const width of [.5,1,2.5])assert.equal(placeOpening(wall,{x:2,y:0},[],'door',width),null);
+  const occupied={id:'window',kind:'window',wall_id:wall.id,offset:1.5,width:2.5};
+  assert.equal(placeOpening(wall,{x:.5,y:0},[occupied],'door',2),null);
+  assert.equal(placeOpening(wall,{x:.5,y:0},[occupied],'door',1.5).width,1.5);
+});
+
+test('arrastrar ambos extremos mantiene módulos válidos aun sin ajuste de cuadrícula',()=>{
+  const opening={id:'d',kind:'door',wall_id:wall.id,offset:.5,width:2};
+  for(const endpoint of [1,2])for(const snap of [true,false])for(let i=-40;i<=40;i++) {
+    const result=editOpening(opening,wall,endpoint,i/10,[opening],snap);
+    if(result) {
+      assert.ok([1.5,2,3].includes(result.width));
+      assert.ok(result.offset>=0 && result.offset+result.width<=4);
+    }
+  }
+});
