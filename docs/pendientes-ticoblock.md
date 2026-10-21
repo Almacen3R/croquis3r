@@ -19,7 +19,7 @@ Las cantidades de bloques por paño de 10 cm **ya se confirmaron iguales** a las
 - Desarrollo local: SQLite en `db.sqlite3`.
 - Servidor LAN: `http://192.168.0.214:8013/`, PostgreSQL 18 exclusivo y contenedores `croquis3r-app-1` / `croquis3r-db-1`, ambos saludables. `/health/` devolvió 200 en la última comprobación. PostgreSQL está en uso, no solamente preparado.
 - Código servidor: `/opt/apps/croquis3r`; datos: `/data/projects/croquis3r`. El acceso SSH existente es válido para el servidor; su nombre de perfil no limita su uso a Inventariotec.
-- Reglas del 21 de octubre (familias, puertas y asistente por metros) y corrección de identificadores sobre HTTP LAN: aplicadas en el servidor; se verificó el commit `43db872e4d48` y `/health/` correcto. La corrección adicional de selección/guardado de puertas descrita al final está pendiente de su actualización.
+- Reglas del 21 de octubre (familias, puertas y asistente por metros) y corrección de identificadores sobre HTTP LAN: aplicadas en el servidor; se verificó el commit `43db872e4d48` y `/health/` correcto. La corrección adicional de selección/guardado de puertas se aplicó posteriormente y se verificó en producción en el commit `a85dfb3aa61d`.
 - Git remoto: publicado en https://github.com/Almacen3R/croquis3r, rama `main`. Código, pruebas y documentación están versionados; datos y secretos se excluyen.
 - Actualizaciones de producción: mediante `scripts/update-server-lan.sh`; la versión `43db872e4d48` fue aplicada por el usuario y comprobada por SSH.
 - Respaldos externos y Drive: pendientes de su etapa operativa; no se activaron tareas nuevas.
@@ -44,3 +44,10 @@ Corrección del 21 de octubre: el campo numérico de largo permitía guardar pue
 El servidor valida el catálogo al crear o actualizar croquis y plantillas completas. Los documentos anteriores se siguen leyendo sin modificarlos; si contienen una puerta fuera del catálogo, deben corregirse expresamente antes de guardar. El cálculo geométrico auxiliar conserva la lectura de medidas anteriores para poder ajustar una pared y después corregir su puerta. El modulador TicoBlock sigue indicando que esas puertas no son calculables.
 
 Verificación: 87 pruebas Django y 23 pruebas de geometría aprobadas, incluidas creación/actualización por API, preservación de documentos anteriores rechazados y arrastre de ambos extremos con y sin cuadrícula. En navegador se comprobó el cambio Estándar → Baño → Amplia y los rótulos visibles, usando un ejemplo sin guardar. Evidencia: `screenshots/puertas-catalogo.png`. No requiere migraciones ni importación de datos.
+
+
+### Verificación posterior en producción
+
+Tras la ejecución de la actualización por el usuario se comprobó por SSH el commit `a85dfb3aa61d848682c4608fe1ecf5cee35eb396`, sin cambios versionados en el servidor, y `/health/` respondió correctamente. En navegador autenticado contra la IP LAN se confirmó Estándar de 2 m como selección inicial y el cambio a Baño de 1,50 m con rótulos visibles. Se usó el ejemplo sin guardarlo.
+
+Prueba HTTP autenticada del guardado: los módulos de 0,50, 1 y 2,50 m devolvieron 400 con el mensaje de catálogo. Los módulos de 1,50, 2 y 3 m superaron la validación de catálogo y devolvieron 409 por una revisión deliberadamente incompatible. Esta revisión impidió cualquier escritura en las seis comprobaciones. Se comparó el documento completo y su revisión antes y después: sin cambios. No se crearon registros. Evidencia visual: `screenshots/puertas-catalogo-produccion.png`.
