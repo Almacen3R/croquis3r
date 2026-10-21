@@ -117,3 +117,8 @@ Consultar [arquitectura](docs/architecture.md), [operación](docs/operations.md)
 Estado y datos pendientes: [registro vigente de Croquis3R](docs/pendientes-ticoblock.md). El servidor LAN ya funciona con PostgreSQL 18; el desarrollo local usa SQLite. Las revisiones locales aún no desplegadas se identifican en ese registro.
 
 Asistente por metros en el cálculo manual; preferencias de 2, 1,50, 1 y 0,50 m. Familias de 12 y 10 cm con las mismas cantidades de bloques, restricciones de altura y segundo piso, y puertas de módulos 1,50, 2 y 3 m. Las promociones conservan 10 cm. Ver [reglas confirmadas](docs/aclaraciones-ticoblock-2026-10-21.md). Esta revisión se verificó en local; no se desplegó sobre la instalación LAN existente.
+
+
+## Repositorio y actualización del servidor
+
+Repositorio oficial: https://github.com/Almacen3R/croquis3r · rama `main`. La instalación LAN existente se actualiza mediante [Git y actualización](docs/git-y-actualizacion.md), con respaldo previo y sin volver a importar datos locales. Los scripts de primera instalación no deben repetirse sobre el proyecto existente.

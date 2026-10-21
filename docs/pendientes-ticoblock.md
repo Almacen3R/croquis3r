@@ -20,7 +20,9 @@ Las cantidades de bloques por paño de 10 cm **ya se confirmaron iguales** a las
 - Servidor LAN: `http://192.168.0.214:8013/`, PostgreSQL 18 exclusivo y contenedores `croquis3r-app-1` / `croquis3r-db-1`, ambos saludables. `/health/` devolvió 200 en la última comprobación. PostgreSQL está en uso, no solamente preparado.
 - Código servidor: `/opt/apps/croquis3r`; datos: `/data/projects/croquis3r`. El acceso SSH existente es válido para el servidor; su nombre de perfil no limita su uso a Inventariotec.
 - Cambios locales pendientes de desplegar: reglas del 21 de octubre (familias, puertas y asistente por metros) y corrección de identificadores sobre HTTP LAN.
-- Respaldos externos, Drive y repositorio remoto: pendientes de su etapa operativa; no se activaron tareas nuevas.
+- Git remoto: publicado en https://github.com/Almacen3R/croquis3r, rama `main`. Código, pruebas y documentación están versionados; datos y secretos se excluyen.
+- Actualización de producción: preparada mediante `scripts/update-server-lan.sh`, pendiente de ejecución con sudo y comprobación posterior.
+- Respaldos externos y Drive: pendientes de su etapa operativa; no se activaron tareas nuevas.
 
 ## Error de identificadores en HTTP LAN
 
