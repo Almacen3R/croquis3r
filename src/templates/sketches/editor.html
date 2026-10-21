@@ -1,0 +1,111 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Croquis3R · Editor de croquis</title>
+  <link rel="stylesheet" href="{% static 'croquis/editor.css' %}?v={{ editor_asset_version }}">
+  <script type="module" src="{% static 'croquis/editor.js' %}?v={{ editor_asset_version }}"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{% url 'attentions' %}" aria-label="Croquis3R, inicio"><span class="brand-icon">▱</span> Croquis<span>3R</span></a>
+    <span class="header-divider"></span><span class="product-label">ESTUDIO DE CROQUIS</span>
+    <span class="prototype"><i></i> Prototipo · recetas TicoBlock</span>
+    <a class="admin-link calculator-link" href="{% url 'house-calculator' %}">Calculador de casas ↗</a>
+    <a class="admin-link calculator-link" href="{% url 'attentions' %}">Atenciones ↗</a>
+    <a class="admin-link" href="/admin/">Administración ↗</a>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar">
+      <div class="section-heading">TU ESPACIO DE TRABAJO <span>01</span></div>
+      <label class="field-label" for="project-name">Nombre del croquis</label>
+      <input id="project-name" maxlength="160" value="Nuevo croquis" autocomplete="off">
+      <div id="save-status" class="save-status">Sin guardar</div>
+      <div class="button-pair"><button id="save" class="primary">Guardar croquis</button><button id="save-copy" title="Guardar como un croquis nuevo" aria-label="Guardar copia">⧉</button></div>
+      <div class="button-pair minor"><button id="new">＋ Nuevo</button><button id="example">Ver ejemplo</button></div>
+
+      <div class="section-heading spaced">DIBUJAR <span>02</span></div>
+      <div class="tools" role="group" aria-label="Herramientas de dibujo">
+        <button class="tool active" data-tool="select"><span class="tool-icon">↖</span><span>Seleccionar<small>Mover y editar objetos</small></span><kbd>V</kbd></button>
+        <button class="tool" data-tool="wall"><span class="tool-icon">▰</span><span>Pared<small>Marca inicio y final</small></span><kbd>P</kbd></button>
+        <button class="tool" data-tool="door"><span class="tool-icon door-icon">◰</span><span>Puerta<small>Usar pared seleccionada o tocar pared</small></span></button>
+        <button class="tool" data-tool="window"><span class="tool-icon">⊟</span><span>Ventana<small>Usar pared seleccionada o tocar pared</small></span></button>
+        <button class="tool" data-tool="column_C"><span class="tool-icon">C</span><span>Columna C<small>Lineal · colocar sobre pared</small></span></button>
+        <button class="tool" data-tool="column_E"><span class="tool-icon">E</span><span>Columna E<small>Esquina o cruce</small></span></button>
+      </div>
+      <div class="section-heading spaced">BIBLIOTECA <span>03</span></div>
+      <label class="field-label" for="saved-list">Croquis y plantillas guardadas</label>
+      <select id="saved-list"><option value="">Seleccionar un croquis…</option></select>
+      <button id="open" class="full secondary">Abrir selección ↗</button>
+      <button id="save-template" class="text-button">＋ Guardar croquis como plantilla</button>
+      <label class="field-label spaced-small" for="object-templates">Plantillas de pared</label>
+      <select id="object-templates"><option value="">Pared base · 2,50 m alto</option></select>
+      <button id="save-object-template" class="text-button">＋ Guardar pared seleccionada</button>
+      <div class="sidebar-note"><span>↳</span><p>Traza la idea.<br><strong>Conecta los materiales.</strong><br>Todo empieza con una medida.</p></div>
+    </aside>
+
+    <main class="main">
+      <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><span id="object-count" class="count-badge">0 objetos</span></div>
+      <div class="canvas-toolbar">
+        <div class="toolbar-group"><button id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button><span class="toolbar-separator"></span><label><input type="checkbox" id="snap" checked> Ajustar a 0,50 m</label><label><input type="checkbox" id="dimensions" checked> Medidas</label></div>
+        <div class="toolbar-group"><button id="zoom-out" aria-label="Alejar">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Acercar">＋</button><button id="fit" title="Centrar croquis">Centrar</button></div>
+      </div>
+      <div class="drawing-area">
+        <div class="drawing-label"><span class="sheet-marker">A—01</span> VISTA EN PLANTA <span>Cada cuadro: 0,50 × 0,50 m</span></div>
+        <svg id="canvas" viewBox="-2 -2 16 12" role="img" aria-label="Lienzo de croquis interactivo. Use las herramientas y los campos de medidas para editar.">
+          <defs><pattern id="grid" width="0.5" height="0.5" patternUnits="userSpaceOnUse"><path d="M 0.5 0 L 0 0 L 0 0.5" fill="none" stroke="#dce5dc" stroke-width="0.012"/></pattern></defs>
+          <rect x="-200" y="-200" width="400" height="400" fill="url(#grid)"/>
+          <g id="scene"></g><g id="modulation" pointer-events="none"></g><g id="measurements" pointer-events="none"></g><g id="preview" pointer-events="none"></g>
+        </svg>
+        <div class="canvas-footer"><span id="tool-hint">Selecciona una pared para editar sus medidas y materiales.</span><span class="north">↑ N <small>referencia</small></span></div>
+      </div>
+      <div class="under-canvas"><span><i class="green-dot"></i> <span id="geometry-summary">Croquis conceptual</span></span><span>Extremos editables · largos modulares de referencia</span></div>
+      <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+      <section class="objects-strip"><div class="section-heading">OBJETOS DEL CROQUIS <span id="selection-label">Selecciona para editar</span></div><div id="object-list" class="object-list"></div></section>
+    </main>
+
+    <aside class="inspector">
+      <div class="inspector-tabs" role="group" aria-label="Panel lateral"><button id="tab-object" class="active">Objeto</button><button id="tab-materials">Materiales <span id="material-count">0</span></button></div>
+      <div id="object-panel">
+        <div id="empty-selection" class="empty-selection"><span>↖</span><h2>Cada detalle cuenta.</h2><p>Selecciona una pared para ajustar sus medidas o una ventana para elegir su clase. En Materiales puedes revisar los paños y configurar la altura y las columnas.</p></div>
+        <div id="selected-panel" hidden>
+          <div class="inspector-title"><div><div class="eyebrow">OBJETO SELECCIONADO</div><h2 id="selected-title">Pared</h2></div><span class="object-symbol">▱</span></div>
+          <form id="properties"><div id="property-fields"></div><button type="submit" class="full secondary">Aplicar medidas</button></form>
+          <div class="button-pair spaced-small"><button id="duplicate">⧉ Duplicar</button><button id="delete" class="danger">Eliminar</button></div>
+          <details class="calculation-details legacy-rules"><summary>Reglas de ejemplo anteriores</summary><p class="fine-print">Estas asignaciones se conservan, pero no se suman al desglose TicoBlock.</p><div class="section-heading spaced">ARTÍCULOS VINCULADOS</div>
+          <div id="assignments"></div>
+          <form id="assignment-form" class="assignment-form">
+            <label class="field-label" for="article-select">Artículo de ejemplo</label><select id="article-select" required></select>
+            <label class="field-label" for="basis">Calcular por</label><select id="basis"><option value="area">m² netos</option><option value="length">Metro lineal</option><option value="object">Objeto / cantidad fija</option></select>
+            <div class="field-grid"><label>Cantidad por unidad<input id="factor" type="number" min="0.0001" max="10000" step="0.0001" value="12.5" required></label><label>Desperdicio %<input id="waste" type="number" min="0" max="100" step="0.01" value="5" required></label></div>
+            <button class="full secondary" type="submit">＋ Vincular artículo</button>
+          </form>
+          <p class="fine-print">Cantidad = base × factor × (1 + desperdicio). Se redondea hacia arriba por objeto.</p></details>
+        </div>
+      </div>
+      <div id="materials-panel" hidden>
+        <div class="inspector-title"><div><div class="eyebrow">RECETAS DEL EXCEL / TICOBLOCK</div><h2>Lista de materiales</h2></div></div>
+        <p class="panel-copy">Se proponen paños en los tramos libres y recetas de aberturas. Los largos dibujados son referencias modulares; no se ha confirmado su equivalencia a medidas libres o ejes de columnas.</p>
+        <details class="modulation-config"><summary>Configurar altura, división y columnas</summary><form id="modulation-settings">
+          <label class="field-label" for="house-height">Altura para todas las paredes</label><select id="house-height" required><option value="" disabled>Elige una altura admitida</option><option value="2.5">2,50 m</option><option value="2.7">2,70 m · una hilada adicional</option><option value="2.9">2,90 m · dos hiladas adicionales</option></select>
+          <label class="field-label" for="house-thickness">Familia de bloques para todas las paredes</label><select id="house-thickness" required><option value="" disabled>Elige el espesor de las fichas cargadas</option><option value="0.12">12 cm · TP50/TP37 · recomendado</option><option value="0.1">10 cm · TP48/TP40 · solo 2,50 m</option></select>
+          <label class="field-label" for="floor-level">Nivel del proyecto</label><select id="floor-level"><option value="1">Primera planta o tapia</option><option value="2">Segundo piso · 12 cm con columnas</option></select>
+          <p class="fine-print">10 cm: solo 2,50 m, sin vigas de bloques; perling o chorreado se cotizan por separado. Segundo piso: 12 cm con columnas; no dimensiona entrepiso ni cimentación.</p>
+          <label class="field-label" for="max-span">Largo preferido por paño</label><select id="max-span"><option value="2">2 m · recomendado</option><option value="1.5">1,50 m · preferencia del cliente</option><option value="1">1 m · preferencia del cliente</option><option value="0.5">0,50 m · preferencia del cliente</option></select>
+          <p class="fine-print">Primero se usa la medida elegida y luego medidas menores para completar el tramo. Por defecto: 2 → 1,50 → 1 → 0,50 m. Cambiar el máximo recalcula automáticamente; altura y columnas se aplican con el botón.</p>
+          <label class="field-label">Columnas del proyecto · cantidades confirmadas</label>
+          <p class="fine-print" id="column-count-source">C: rectas. E: esquinas e intersecciones en cruz.</p>
+          <div class="field-grid"><label>C · lineal<input id="linear-columns" type="number" min="0" max="10000" step="1" required value="0"></label><label>E · esquina/cruz<input id="t-columns" type="number" min="0" max="10000" step="1" required value="0"></label></div>
+          <button type="submit" class="full secondary">Aplicar configuración</button>
+        </form></details>
+        <label class="field-label"><input type="checkbox" id="show-panels" checked> Mostrar límites propuestos de paños</label>
+        <button id="recalculate" class="full secondary">Recalcular</button><div id="estimate-status" class="save-status" role="status"></div><div id="modulation-issues"></div><div id="material-items"></div><p id="material-weight" class="panel-copy"></p><details class="calculation-details"><summary>Alcance y pendientes de revisión</summary><div id="material-warnings"></div></details><button id="export-csv" class="full secondary spaced-small">↓ Descargar lista CSV</button><details class="calculation-details"><summary>Ver paños y aporte por pared</summary><div id="calculation-details"></div></details>
+      </div>
+      <div class="demo-notice"><strong>ESTIMACIÓN SEGÚN MODULADOR</strong><p>12 cm: alturas de 2,50, 2,70 o 2,90 m. 10 cm: solo 2,50 m y sin vigas de bloques. Las marcas de paños son propuestas; los tipos de columna requieren confirmación. No incluye todos los materiales de la casa ni consulta existencias o precios de 3R.</p></div>
+    </aside>
+  </div>
+  <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">Guardar plantilla</h2><label class="field-label" for="dialog-name">Nombre</label><input id="dialog-name" maxlength="100" required><div class="dialog-actions"><button value="cancel" formnovalidate>Cancelar</button><button value="save" class="primary">Guardar</button></div></form></dialog>
+</body>
+</html>

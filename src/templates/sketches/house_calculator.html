@@ -1,0 +1,97 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Croquis3R · Calculador de casas</title>
+  <link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261021-meters1">
+  <script defer src="{% static 'croquis/house-calculator.js' %}?v=20261021-meters1"></script>
+</head>
+<body data-unsaved="{{ unsaved|yesno:'true,false' }}">
+  <header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a>
+    <nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'editor' %}">Editor de croquis</a><a href="{% url 'house-calculator' %}" aria-current="page">Calculador de casas</a></nav>
+    <span class="badge">Prototipo · recetas de TicoBlock</span></header>
+  <main>
+    <div class="mode-nav" aria-label="Modo de cálculo"><a aria-current="page" href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Elegir una casa de plantilla →</a></div>
+    <div class="intro"><div><p class="eyebrow">MATERIALES / INGRESO MANUAL</p><h1>De paños a materiales.</h1>
+      <p>Indica los paños o parte de los metros de una pared o tapia. Consulta el aporte de cada uno y revisa el desglose.</p></div>
+      <button type="button" id="print">Imprimir resultado ↗</button></div>
+    <details class="quick-help"><summary>Primera vez: ¿qué debo contar?</summary><p>Un paño es una sección de pared. Cuenta por separado las secciones completas y las que llevan ventana o puerta, según su largo modular. La receta de ventana ya contempla el espacio de esa ventana: no la cuentes además como pared completa ni vuelvas a descontarla.</p><p>Las columnas C se usan en tramos rectos y las E en esquinas y cruces. «Paños + 1» sirve para una sola línea abierta; no determina las columnas de una casa cerrada. Las medidas libres y la referencia exacta de los módulos todavía deben confirmarse con TicoBlock.</p></details>
+    <section class="card distribution-assistant" aria-labelledby="distribution-title">
+      <h2 id="distribution-title">¿Tienes los metros? Te sugerimos los paños.</h2>
+      <p class="hint">Sirve para una pared completa o una tapia. Ingresa cada tramo recto por separado; no sumes todos los lados de una casa como si fueran una sola pared. Las puertas y ventanas se ajustan después por paños.</p>
+      <form id="distribution-form">{% csrf_token %}
+        <div class="settings-grid">
+          <label for="distribution-meters">Metros del tramo<input id="distribution-meters" name="meters" type="number" min="0.5" max="200" step="0.5" required inputmode="decimal" placeholder="Ejemplo: 7,50"></label>
+          <label for="distribution-preference">Largo preferido<select id="distribution-preference" name="preferred"><option value="2">2 m · recomendado</option><option value="1.5">1,50 m</option><option value="1">1 m</option><option value="0.5">0,50 m</option></select></label>
+        </div>
+        <p class="hint">Se usan primero los paños de la medida elegida y luego medidas menores para completar exactamente el largo, sin redondearlo.</p>
+        <button type="submit" class="secondary">Sugerir distribución</button>
+      </form>
+      <div id="distribution-result" aria-live="polite" hidden></div>
+      <div class="button-pair" id="distribution-actions" hidden><button type="button" id="distribution-replace">Usar como paños completos</button><button type="button" id="distribution-add">Agregar a los paños completos</button></div>
+      <p class="hint">Usar reemplaza únicamente los cuatro conteos de pared completa; Agregar suma otro tramo. Las ventanas, puertas y columnas se conservan. Después pulsa Calcular materiales.</p>
+    </section>
+    <form method="post" id="calculator">{% csrf_token %}{% include "sketches/_attention_status.html" %}
+      {% if form.errors %}<div class="error-summary" role="alert"><strong>Revisa los campos señalados.</strong> Las cantidades deben ser enteros dentro de los límites indicados. El resultado anterior no se conserva.</div>{% endif %}
+      <div class="actions"><button type="submit" class="primary">Calcular materiales →</button><button type="submit" name="action" value="save">Guardar atención</button>{% if form.record_id.value %}<button type="submit" name="action" value="save_copy">Guardar copia</button>{% endif %}<button type="button" id="example">Cargar ejemplo</button><a href="{% url 'house-calculator' %}">Nuevo cálculo</a></div>
+      <div class="layout">
+        <div class="inputs">
+          <section class="card settings"><div class="section-title"><span>01</span><h2>Tu proyecto</h2></div>
+            <div class="settings-grid"><label>{{ form.project.label }}{{ form.project }}{{ form.project.errors }}</label>
+            <label>{{ form.block_family.label }}{{ form.block_family }}{{ form.block_family.errors }}</label><label>{{ form.floor_level.label }}{{ form.floor_level }}{{ form.floor_level.errors }}</label>
+            <label>{{ form.height.label }}{{ form.height }}{{ form.height.errors }}</label></div>
+            {% include "sketches/_attention_fields.html" %}<p class="hint">Por defecto se recomienda 12 cm (TP50/TP37). La familia de 10 cm (TP48/TP40) conserva las cantidades de bloques y solo permite 2,50 m, sin vigabloques. 2,70 y 2,90 m corresponden únicamente a 12 cm. Segundo piso: 12 cm con columnas; no es un dimensionamiento estructural.</p>
+          </section>
+          <section class="card"><div class="section-title"><span>02</span><h2>Cantidades de paños</h2></div>
+            <p class="hint">El largo corresponde al módulo completo, no a la medida exacta del vano de una ventana o puerta. De 0 a 100 paños por clase.</p>
+            {% if legacy_doors %}<div class="error-summary"><label>{{ form.panel_19.label }}{{ form.panel_19 }}{{ form.panel_19.errors }}</label><p>Este dato se conserva para revisión. Redistribúyelo entre las puertas actuales y deja el conteo antiguo en cero; los resultados históricos guardados no se modifican.</p></div>{% endif %}
+            {% for group in groups %}<fieldset class="recipe-group"><legend>{% if group.name == 'Completo' %}Pared sin puerta ni ventana{% else %}{{ group.name }}{% endif %}</legend>
+              <div class="recipe-grid">{% for row in group.rows %}<label class="recipe">
+                <span class="module-symbol {% if 'Ventana' in group.name %}window{% elif 'Puerta' in group.name %}door{% endif %}" aria-hidden="true"><i></i></span>
+                <strong>{{ row.recipe.length_label }} m</strong><small>{{ row.recipe.tp50 }} largos + {{ row.recipe.tp37 }} cortos</small>
+                {{ row.field }}{{ row.field.errors }}
+              </label>{% endfor %}</div>
+            </fieldset>{% endfor %}
+            <p class="hint">Bloque largo/corto: TP50/TP37 en 12 cm; TP48/TP40 en 10 cm. Puertas por módulo: baño 1,50 m, Estándar 2 m y Amplia 3 m. El vano comercial es menor que el módulo.</p><p class="hint">Ventana de baño de 2 m: sin receta en el Excel; no está habilitada.</p>
+          </section>
+          <section class="card"><div class="section-title"><span>03</span><h2>Columnas</h2></div>
+            <label>{{ form.column_mode.label }}{{ form.column_mode }}{{ form.column_mode.errors }}</label>
+            <p id="column-help" class="hint">Ingresa las cantidades del proyecto. La opción «paños + 1» es solo para una cadena abierta.</p>
+            <p class="hint">C: tramos rectos. E: esquinas e intersecciones en cruz. Son los productos de TicoBlock que vende 3R.</p>
+            <div class="column-grid" id="manual-columns"><label>{{ form.linear_columns.label }}{{ form.linear_columns }}{{ form.linear_columns.errors }}</label><label>{{ form.t_columns.label }}{{ form.t_columns }}{{ form.t_columns.errors }}</label></div>
+          </section>
+          <p class="hint">El cálculo se realiza al pulsar el botón. Los cambios pendientes se señalan en el resultado.</p>
+        </div>
+        <aside class="results card" id="results" aria-label="Resultado del cálculo">
+          <div class="section-title"><span>04</span><h2>Desglose de materiales</h2></div>
+          <p id="pending" role="status" hidden>Hay cambios pendientes. Pulsa «Calcular materiales» para actualizar.</p>
+          {% if result %}
+            <h3>{{ form.cleaned_data.project|default:'Casa sin nombre' }}</h3><p class="hint">Cliente: {{ form.cleaned_data.customer|default:'Sin referencia' }}</p>{% if form.cleaned_data.notes %}<p class="hint preserve-lines">{{ form.cleaned_data.notes }}</p>{% endif %}
+            <p class="result-height">Altura de referencia: {{ result.height_label }} · bloques de {{ result.block_family }} cm</p>
+            <div class="stats"><div><strong>{{ result.panels }}</strong><span>paños</span></div><div><strong>{{ result.meters|floatformat:'2' }}</strong><span>metros modulares</span></div><div><strong>{{ result.columns }}</strong><span>columnas</span></div></div>
+            <table class="materials"><caption>Para la altura seleccionada</caption><thead><tr><th>Material</th><th>Cantidad</th></tr></thead><tbody>
+              {% for label, quantity, unit in result.items %}<tr><td>{{ label }}<small>{{ unit }}</small></td><td>{{ quantity|default_if_none:'Pendiente' }}</td></tr>{% endfor %}
+            </tbody></table>
+            {% if result.weight != None %}<p class="weight"><strong>{{ result.weight }} kg</strong> · peso parcial según Excel</p>{% else %}<p class="weight">Peso de la familia de 10 cm pendiente de confirmar.</p>{% endif %}
+            {% if result.block_family == '12' %}<p class="hint">Peso parcial con factores heredados del Excel: TP37 (11 kg), TP50 (16 kg), columnas (108 kg) y mortero (40 kg). Excluye vigabloques y acero. El peso vigente de cada producto requiere confirmación.</p>
+            <details><summary>Cómo se calculó</summary>
+              <ul class="formulas"><li>Mortero: ({{ result.tp50 }} + {{ result.tp37 }}) ÷ 20, redondeado hacia arriba = {{ result.mortar }}.</li>
+                <li>Varilla de pared: suma de factores {{ result.wall_factor }} → {{ result.wall_steel }}.</li>
+                <li>Una hilada: {{ result.meters }} m × 2,5 → {{ result.beam_one }} vigabloques; dos hiladas: {{ result.beam_two }}.</li>
+                <li>Varilla de viga: {{ result.meters }} m ÷ 6 → {{ result.steel_one }} para una hilada, {{ result.steel_two }} para dos.</li></ul>
+              <p class="hint">Salvo mortero, se conserva el redondeo al entero más cercano del Excel; las mitades suben. Dos hiladas duplican el resultado ya redondeado.</p>
+            </details>
+            {% endif %}<div class="warnings"><strong>Alcance y revisión</strong><ul>{% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></div>
+          {% else %}<div class="empty"><span>▤</span><h3>El desglose empieza aquí.</h3><p>Agrega paños y columnas, elige la altura y pulsa «Calcular materiales».</p></div>{% endif %}
+          <p class="version">Recetas: {{ version }}<br>MODULADOR TICOBLOCK MANUAL y aclaraciones TicoBlock del 21-10-2026. Falta vincular los códigos de estos mismos productos en el catálogo de 3R.</p>
+        </aside>
+      </div>
+    </form>
+    {% if result %}<section class="card detail-section"><div class="section-title"><span>05</span><h2>Aporte de cada clase de paño</h2></div>
+      <div class="table-scroll"><table><thead><tr><th>Tipo</th><th>Módulo</th><th>Paños</th><th>{{ result.block_long_name }}</th><th>{{ result.block_short_name }}</th><th>Metros</th><th>Origen de la receta</th></tr></thead><tbody>
+        {% for row in result.details %}<tr><td>{{ row.kind }}</td><td>{{ row.length }} m</td><td>{{ row.quantity }}</td><td>{{ row.tp50 }} <small>({{ row.quantity }} × {{ row.tp50_each }})</small></td><td>{{ row.tp37 }} <small>({{ row.quantity }} × {{ row.tp37_each }})</small></td><td>{{ row.meters }}</td><td>{{ row.source }}</td></tr>{% empty %}<tr><td colspan="7">No se ingresaron paños.</td></tr>{% endfor %}
+      </tbody></table></div></section>{% endif %}
+    <footer>Estimación de materiales del sistema TicoBlock · Croquis3R · Recetas pendientes de validación técnica.</footer>
+  </main>
+</body></html>

@@ -1,0 +1,4 @@
+{% if form.non_field_errors %}<div class="error-summary" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% if record %}<p class="attention-status">Editando atención #{{ record.pk }} · revisión {{ record.revision }}. Guardar actualizará la atención; Guardar copia creará otra. Al calcular se aplican las recetas actuales.</p>
+{% elif unsaved %}<p class="attention-status">Este resultado tiene cambios sin guardar. Usa «Guardar atención» para poder recuperarlo por cliente.</p>
+{% else %}<p class="hint">Puedes calcular e imprimir sin guardar. Usa «Guardar atención» si necesitas continuar otro día.</p>{% endif %}

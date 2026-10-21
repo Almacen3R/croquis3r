@@ -1,0 +1,41 @@
+{% load static %}
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Croquis3R · {{ house.name }}</title><link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261020-sales2"><script defer src="{% static 'croquis/house-template.js' %}?v=20261020-sales2"></script></head>
+<body data-unsaved="{{ unsaved|yesno:'true,false' }}">
+<header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a><nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Plantillas de casas</a></nav><span class="badge">Lista de referencia de TicoBlock</span></header>
+<main>
+  <div class="mode-nav"><a href="{% url 'house-templates' %}">← Elegir otra casa</a></div>
+  <div class="intro"><div><p class="eyebrow">PLANTILLA / {{ house.area }} M² DECLARADOS</p><h1>{{ house.name }}</h1><p>Usa las cantidades originales o ajusta una copia para tu proyecto. Cambiar una cantidad no modifica el dibujo ni recalcula el diseño.</p></div><button type="button" id="print" {% if not result %}disabled{% endif %}>Imprimir lista ↗</button></div>
+  <form method="post" id="template-form">{% csrf_token %}{% include "sketches/_attention_status.html" %}
+    {% if form.errors %}<div class="error-summary" role="alert">Revisa los campos señalados. Ingresa cantidades enteras entre 0 y 100.000; usa 0 para quitar un material con cantidad original.</div>{% endif %}
+    <div class="actions"><button type="submit" class="primary">Actualizar mi lista →</button><button type="submit" name="action" value="save">Guardar atención</button>{% if form.record_id.value %}<button type="submit" name="action" value="save_copy">Guardar copia</button>{% endif %}<a href="{% url 'house-template-detail' house.slug %}">Restablecer cantidades originales</a></div>
+    <div class="layout">
+      <div class="inputs">
+        <section class="card"><div class="section-title"><span>01</span><h2>Distribución de referencia</h2></div>
+          <a href="{% static house.image %}" target="_blank" rel="noopener" class="plan-link"><img class="house-plan" src="{% static house.image %}" alt="Distribución de {{ house.name }}, {{ house.area }} metros cuadrados"></a>
+          <p class="hint">Pulsa el dibujo para ampliarlo. Es una imagen del documento recibido; no es un plano generado por Croquis3R.</p>
+        </section>
+        <section class="card"><div class="section-title"><span>02</span><h2>Prepara tu lista</h2></div>
+          <label>{{ form.project.label }}{{ form.project }}{{ form.project.errors }}</label>{% include "sketches/_attention_fields.html" %}
+          <p class="hint">«Original» es la cantidad publicada. Un espacio vacío corresponde a una cantidad no indicada; no equivale a cero. Los ajustes se muestran en el resultado.</p>
+          <div class="table-scroll"><table class="template-inputs"><thead><tr><th>Material</th><th>Original</th><th>Tu cantidad</th></tr></thead><tbody>
+            {% for row in rows %}<tr><td>{{ row.name }}</td><td>{{ row.original|default_if_none:'Sin indicar' }}</td><td>{{ row.field }}{{ row.field.errors }}</td></tr>{% endfor %}
+          </tbody></table></div>
+          {% if house.note %}<p class="hint"><strong>Nota del documento:</strong> {{ house.note }}</p>{% endif %}
+        </section>
+      </div>
+      <aside class="card results" aria-label="Resultado de la plantilla" id="results">
+        <div class="section-title"><span>03</span><h2>Tu lista de materiales</h2></div>
+        <p id="pending" role="status" hidden>Hay cambios pendientes. Pulsa «Actualizar mi lista» para aplicarlos.</p>
+        {% if result %}<h3>{{ result.project }}</h3><p class="hint">Cliente: {{ form.customer.value|default:'Sin referencia' }}</p><p class="hint">{{ house.name }} · {{ house.area }} m² declarados en el original.<br>{% if result.changed %}<strong>Lista ajustada por el usuario.</strong>{% else %}Cantidades originales de TicoBlock.{% endif %}</p>
+          <div class="stats"><div><strong>{{ result.blocks }}</strong><span>bloques TP48 + TP40</span></div><div><strong>{{ result.columns }}</strong><span>columnas C + E</span></div></div>
+          <table class="materials"><caption>Cantidades en unidades</caption><thead><tr><th>Material</th><th>Cantidad</th></tr></thead><tbody>{% for row in result.rows %}<tr><td>{{ row.name }}{% if row.changed %}<small>Ajustado · original: {{ row.original|default_if_none:'sin indicar' }}</small>{% endif %}</td><td>{{ row.quantity|default_if_none:'—' }}</td></tr>{% endfor %}</tbody></table>
+          {% if result.unknown %}<p class="hint">Hay {{ result.unknown }} cantidad{{ result.unknown|pluralize:'es' }} sin indicar. El guion se conserva como dato pendiente.</p>{% endif %}
+        {% else %}<p class="hint">Corrige las cantidades para obtener una lista actualizada.</p>{% endif %}
+        <div class="warnings"><strong>Cómo interpretar esta lista</strong><p>Columna C corresponde a lineal y columna E a esquina/cruz. Son los mismos productos de TicoBlock que vende 3R; falta vincular sus códigos internos. Esta plantilla usa TP48/TP40 de 10 cm, a altura de 2,50 m y sin vigas de bloques. La familia recomendada para un proyecto nuevo es 12 cm (TP50/TP37); las promociones conservan su familia y cantidades de 10 cm.</p><p>Las medidas de ventanas están transcritas tal como aparecen, incluida «1,375 × 60». Sus unidades y dimensiones exactas requieren confirmación.</p><p>Solo se muestran los materiales listados en la fuente. Aquí no se calculan mortero, varilla, cimentación, techo, peso ni precio. La altura no se especifica como parámetro de esta lista.</p></div>
+        <p class="version">Fuente: <a href="{{ source_url }}" target="_blank" rel="noopener">{{ source_name }}</a> · tabla {{ house.table }}.<br>Versión: {{ version }}</p>
+      </aside>
+    </div>
+  </form>
+  <footer>Usa Guardar atención para recuperar esta lista por cliente. También puedes imprimir o guardar un PDF. Las plantillas originales permanecen disponibles.</footer>
+</main></body></html>

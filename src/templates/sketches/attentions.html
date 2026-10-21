@@ -1,0 +1,18 @@
+{% extends 'sketches/sales_base.html' %}
+{% block content %}
+<div class="intro"><div><p class="eyebrow">VENTAS / ATENCIÓN AL CLIENTE</p><h1>¿Cómo empezamos esta casa?</h1><p>Elige un punto de partida. Recupera una atención guardada para continuar con el cliente.</p></div></div>
+<div class="house-gallery start-options">
+  <section class="card"><h2>El cliente quiere un diseño conocido</h2><p>Consulta las siete casas de referencia y prepara una copia de su lista de materiales.</p><a class="button-link" href="{% url 'house-templates' %}">Elegir una plantilla →</a></section>
+  <section class="card"><h2>Ya conoces los tramos de pared</h2><p>Ingresa paños: módulos de pared completos, con ventana o con puerta. El sistema suma sus recetas.</p><a class="button-link" href="{% url 'house-calculator' %}">Calcular por paños →</a></section>
+  <section class="card"><h2>Necesitas dibujar la distribución</h2><p>Traza sobre cuadros de 0,50 m. El sistema propone la división en paños para revisar.</p><a class="button-link" href="{% url 'editor' %}">Dibujar un croquis →</a></section>
+</div>
+<section class="card detail-section"><h2>Atenciones guardadas</h2>
+<form method="get" class="search-form"><label for="search">Buscar por cliente o nombre del proyecto</label><div class="actions"><input id="search" name="q" value="{{ query }}" maxlength="160"><button type="submit">Buscar</button>{% if query %}<a href="{% url 'attentions' %}">Ver todas</a>{% endif %}</div></form>
+<div class="table-scroll"><table><thead><tr><th>Atención</th><th>Cliente</th><th>Origen</th><th>Actualizada</th><th></th></tr></thead><tbody>
+{% for record in records %}<tr><td>#{{ record.pk }} · {{ record.project }}</td><td>{{ record.customer|default:'Sin referencia de cliente' }}</td><td>{{ record.get_kind_display }}<small>{{ record.review_label }}</small></td><td>{{ record.updated_at|date:'d/m/Y H:i' }}</td><td><a href="{% url 'attention-detail' record.pk %}">Abrir →</a></td></tr>{% empty %}<tr><td colspan="5">{% if query %}No hay coincidencias. Prueba otro nombre o referencia.{% else %}Todavía no hay atenciones guardadas. Comienza con una de las opciones de arriba.{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+{% if records.has_other_pages %}<div class="actions">{% if records.has_previous %}<a href="?q={{ query|urlencode }}&amp;page={{ records.previous_page_number }}">← Anterior</a>{% endif %}<span>Página {{ records.number }} de {{ records.paginator.num_pages }}</span>{% if records.has_next %}<a href="?q={{ query|urlencode }}&amp;page={{ records.next_page_number }}">Siguiente →</a>{% endif %}</div>{% endif %}
+</section>
+<section class="card"><h2>Croquis y plantillas dibujadas</h2><p class="hint">Los croquis conservan su propio guardado. Ábrelos en el editor para revisar sus materiales.</p><div class="saved-sketches">{% for sketch in sketches %}<a href="{% url 'editor' %}?sketch={{ sketch.id }}">{{ sketch.name }}{% if sketch.is_template %} · plantilla{% endif %} →</a>{% empty %}<p class="hint">Aún no hay croquis guardados.</p>{% endfor %}</div></section>
+<p class="hint">Los resultados son estimaciones de materiales de TicoBlock. Precio, existencias y cotización comercial aún no están integrados. Tapias requiere revisar el Excel original.</p>
+{% endblock %}

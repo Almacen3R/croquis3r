@@ -1,0 +1,22 @@
+# Borrador para revisión; requiere Compose >= 2.24.4 (!override / !reset).
+# docker compose --env-file .env.production -f compose.yaml -f compose.production.yaml ...
+services:
+  app:
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina una clave segura}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?Defina los hosts aprobados}
+    ports: !reset []
+    expose:
+      - "8080"
+    networks:
+      proxy:
+        aliases:
+          - croquis3r
+  db:
+    volumes: !override
+      - /data/projects/croquis3r/postgres:/var/lib/postgresql
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

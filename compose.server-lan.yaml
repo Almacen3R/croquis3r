@@ -1,0 +1,20 @@
+# Piloto interno solicitado. No cambia el proxy común ni otros proyectos.
+# docker compose --env-file .env.production -f compose.yaml -f compose.server-lan.yaml ...
+services:
+  app:
+    image: croquis3r-app:${CROQUIS_RELEASE:?Defina la versión desplegada}
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_COOKIE_SECURE: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina la clave de producción}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?Defina los hosts LAN}
+    ports: !override
+      - "192.168.0.214:8013:8080"
+    networks:
+      backend: {}
+      frontend: {}
+  db:
+    volumes: !override
+      - /data/projects/croquis3r/postgres:/var/lib/postgresql
+networks:
+  frontend: {}
