@@ -56,3 +56,10 @@ Prueba HTTP autenticada del guardado: los módulos de 0,50, 1 y 2,50 m devolvier
 ## Actualización del 22 de octubre: área y viga de amarre
 
 Ver [regla y verificación de área/vigabloques](area-y-vigabloques-2026-10-22.md). La estimación de 12 cm incluye ahora viga a 2,50 m. El factor de 2,5 piezas por metro se verificó con la ficha nominal de 40 cm; se redondea hacia arriba por pared recta continua en croquis, o por paño independiente en el manual. No cambia la excepción de 10 cm ni sus pendientes de peso/mortero/acero. El área se muestra para contornos cerrados en planta, sin descontar espesores o patios. No se modifican resultados históricos guardados. Código local pendiente de desplegar.
+
+
+## Usuarios y precios — 22-10-2026
+
+Se implementan propietarios por usuario, acceso global para superusuarios y cierre de sesión POST. [Reglas de privacidad y migración](usuarios-y-privacidad.md). Los históricos sin dueño se conservan y solo los administradores pueden verlos/asignarlos. Las referencias originales de promociones siguen comunes; las copias guardadas son personales. Antes no existía separación por usuario. Corrección local pendiente de despliegue y migración aditiva en el servidor.
+
+La [lista para vincular artículos y precios](articulos-para-precios.md) identifica productos/variantes y datos comerciales pendientes. Todavía no se conectó la base comercial ni se confirmaron códigos/precios reales. Pesos, mortero y acero de 10 cm siguen pendientes.

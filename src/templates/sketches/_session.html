@@ -1,0 +1,1 @@
+{% if user.is_authenticated %}<div class="session-controls"><span class="session-user" title="{{ user.get_username }}">{{ user.get_username }} · {% if user.is_superuser %}Administrador{% else %}Vendedor{% endif %}</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Cerrar sesión</button></form></div>{% endif %}

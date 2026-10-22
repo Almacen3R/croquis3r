@@ -1,4 +1,5 @@
-from django.test import Client, SimpleTestCase, TestCase, override_settings
+from .testing import AuthenticatedTestCase as TestCase
+from django.test import Client, SimpleTestCase, override_settings
 
 from .house_templates import HouseTemplateForm, TEMPLATES, TEMPLATES_BY_SLUG, template_result
 
@@ -82,12 +83,14 @@ class TemplateViewTests(TestCase):
 
     @override_settings(DEBUG=False)
     def test_access_control(self):
+        self.client.logout()
         for url in ("/calculador-casas/plantillas/", "/calculador-casas/plantillas/modelo-e/"):
             self.assertEqual(self.client.get(url).status_code, 302)
 
     @override_settings(DEBUG=True)
     def test_csrf(self):
         client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
         url = "/calculador-casas/plantillas/modelo-e/"
         self.assertEqual(client.post(url, original_data(TEMPLATES[0])).status_code, 403)
         client.get(url)

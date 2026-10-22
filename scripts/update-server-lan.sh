@@ -42,7 +42,7 @@ dc exec -T db pg_restore --list < "$backup/database.dump" > "$backup/database.co
 test -s "$backup/database.dump"
 sha256sum "$backup/database.dump" > "$backup/database.sha256"
 capture_business() {
-  dc exec -T app python manage.py shell --command "import hashlib,json; from django.core import serializers; from catalog.models import Article; from sketches.models import Sketch,ObjectTemplate,Attention; models=(Article,Sketch,ObjectTemplate,Attention); rows=[json.loads(serializers.serialize('json',m.objects.order_by('pk'))) for m in models]; print('BUSINESS:'+json.dumps({'counts':{m._meta.label_lower:len(r) for m,r in zip(models,rows)},'sha256':hashlib.sha256(json.dumps(rows,sort_keys=True,ensure_ascii=True).encode()).hexdigest()},sort_keys=True))" | sed -n 's/^BUSINESS://p'
+  dc exec -T app python manage.py shell --command "import hashlib,json; from django.core import serializers; from catalog.models import Article; from sketches.models import Sketch,ObjectTemplate,Attention; models=(Article,Sketch,ObjectTemplate,Attention); rows=[json.loads(serializers.serialize('json',m.objects.order_by('pk'))) for m in models]; [entry['fields'].setdefault('owner',None) for group,model in zip(rows,models) if model is not Article for entry in group]; print('BUSINESS:'+json.dumps({'counts':{m._meta.label_lower:len(r) for m,r in zip(models,rows)},'sha256':hashlib.sha256(json.dumps(rows,sort_keys=True,ensure_ascii=True).encode()).hexdigest()},sort_keys=True))" | sed -n 's/^BUSINESS://p'
 }
 capture_business > "$backup/business-before.json"
 test -s "$backup/business-before.json"
@@ -100,11 +100,16 @@ PY
 dc config --quiet
 dc build app
 dc run --rm --no-deps -T app python manage.py check
-# Esta revisión no cambia modelos: detener si aparecen migraciones inesperadas.
-dc run --rm --no-deps -T app python manage.py migrate --check
+# Solo se autoriza aquí la migración aditiva de propietarios: campos nulos,
+# sin asignar autorías históricas, borrar filas ni cambiar documentos/resultados.
+dc run --rm --no-deps -T app python manage.py shell --command "from django.db import connection; from django.db.migrations.executor import MigrationExecutor; executor=MigrationExecutor(connection); plan=executor.migration_plan(executor.loader.graph.leaf_nodes()); assert all(not backwards and (migration.app_label,migration.name)==('sketches','0003_record_owners') for migration,backwards in plan), 'Migraciones inesperadas; revisar antes de continuar.'; print('Plan de migraciones permitido:',[(m.app_label,m.name) for m,_ in plan])"
 # Las pruebas usan una base de prueba PostgreSQL independiente de croquis3r.
 dc run --rm --no-deps -T app python manage.py test sketches catalog
+# Evitar escrituras de la imagen anterior durante la migración y comprobación.
+# El rollback conserva esta extensión nullable compatible con la imagen anterior.
 switched=1
+dc stop app
+dc run --rm --no-deps -T app python manage.py migrate --noinput
 dc up -d --no-deps --wait --wait-timeout 120 app
 curl --fail --silent http://192.168.0.214:8013/health/
 dc exec -T app python manage.py shell <<'PY'
@@ -112,7 +117,7 @@ from django.test import Client
 from django.contrib.auth import get_user_model
 c=Client(HTTP_HOST='192.168.0.214:8013')
 assert c.get('/').status_code==302
-user=get_user_model().objects.filter(is_staff=True,is_active=True).first()
+user=get_user_model().objects.filter(is_superuser=True,is_active=True).first()
 assert user is not None, 'Falta una cuenta del equipo.'
 c.force_login(user)
 for url in ('/','/calculador-casas/','/atenciones/','/api/sketches/'):
@@ -120,7 +125,10 @@ for url in ('/','/calculador-casas/','/atenciones/','/api/sketches/'):
 response=c.post('/api/suggest-panels/',data='{"meters":"7.5"}',content_type='application/json')
 assert response.status_code==200
 assert response.json()['panels']==4
-print('Editor, calculador, atenciones y distribución por metros: OK.')
+assert c.get('/salir/').status_code==405
+assert c.post('/salir/').status_code==302
+assert c.get('/api/sketches/').status_code==403
+print('Editor, calculador, atenciones, distribución y cierre de sesión: OK.')
 PY
 capture_business > "$backup/business-after.json"
 python3 - "$backup" <<'PY'

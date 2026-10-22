@@ -1,6 +1,7 @@
 import json
 
-from django.test import Client, SimpleTestCase, TestCase, override_settings
+from .testing import AuthenticatedTestCase as TestCase
+from django.test import Client, SimpleTestCase, override_settings
 
 from .domain import InvalidDocument, validate_document
 from .modulation import calculate_modulation
@@ -189,8 +190,10 @@ class ModulationApiTests(TestCase):
         response = self.client.post(url, json.dumps({"document": doc(wall(x2=1.1))}), content_type="application/json")
         self.assertEqual(response.json()["status"], "incomplete")
         client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
         self.assertEqual(client.post(url, "{}", content_type="application/json").status_code, 403)
 
     @override_settings(DEBUG=False)
     def test_production_access_is_restricted(self):
+        self.client.logout()
         self.assertEqual(self.client.post("/api/ticoblock-estimate/", "{}", content_type="application/json").status_code, 403)

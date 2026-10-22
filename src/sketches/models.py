@@ -1,7 +1,9 @@
 from django.db import models
+from django.conf import settings
 
 
 class Sketch(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Propietario")
     name = models.CharField(max_length=160)
     document = models.JSONField(default=dict)
     is_template = models.BooleanField(default=False)
@@ -17,12 +19,14 @@ class Sketch(models.Model):
 
 
 class ObjectTemplate(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Propietario")
     name = models.CharField(max_length=100)
     specification = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Attention(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Propietario")
     kind = models.CharField(max_length=16, choices=(("manual", "Cálculo por paños"), ("template", "Lista de plantilla")))
     template_slug = models.CharField(max_length=80, blank=True)
     project = models.CharField(max_length=160)

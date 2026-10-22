@@ -4,13 +4,13 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Croquis3R · Calculador de casas</title>
-  <link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-beams1">
-  <script defer src="{% static 'croquis/house-calculator.js' %}?v=20261022-beams1"></script>
+  <link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-users1">
+  <script defer src="{% static 'croquis/house-calculator.js' %}?v=20261022-users1"></script>
 </head>
 <body data-unsaved="{{ unsaved|yesno:'true,false' }}">
   <header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a>
     <nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'editor' %}">Editor de croquis</a><a href="{% url 'house-calculator' %}" aria-current="page">Calculador de casas</a></nav>
-    <span class="badge">Prototipo · recetas de TicoBlock</span></header>
+    <span class="badge">Prototipo · recetas de TicoBlock</span>{% include 'sketches/_session.html' %}</header>
   <main>
     <div class="mode-nav" aria-label="Modo de cálculo"><a aria-current="page" href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Elegir una casa de plantilla →</a></div>
     <div class="intro"><div><p class="eyebrow">MATERIALES / INGRESO MANUAL</p><h1>De paños a materiales.</h1>

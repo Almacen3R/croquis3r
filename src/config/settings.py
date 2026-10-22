@@ -21,6 +21,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware", "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware", "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware", "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "sketches.middleware.PrivateResponseMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware", "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "config.urls"
@@ -55,7 +56,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
             "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-LOGIN_URL = "/admin/login/"
+LOGIN_URL = "/ingresar/"
+LOGIN_REDIRECT_URL = "/atenciones/"
+LOGOUT_REDIRECT_URL = "/ingresar/"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 1_048_576
 if not DEBUG:
     # Un piloto HTTP en LAN puede desactivarlo explícitamente, manteniendo DEBUG=0.

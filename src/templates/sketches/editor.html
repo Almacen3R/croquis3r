@@ -15,8 +15,8 @@
     <span class="prototype"><i></i> Prototipo · recetas TicoBlock</span>
     <a class="admin-link calculator-link" href="{% url 'house-calculator' %}">Calculador de casas ↗</a>
     <a class="admin-link calculator-link" href="{% url 'attentions' %}">Atenciones ↗</a>
-    <a class="admin-link" href="/admin/">Administración ↗</a>
-  </header>
+    {% if user.is_superuser %}<a class="admin-link" href="/admin/">Administración ↗</a>{% endif %}
+  {% include 'sketches/_session.html' %}</header>
   <div class="workspace">
     <aside class="sidebar">
       <div class="section-heading">TU ESPACIO DE TRABAJO <span>01</span></div>

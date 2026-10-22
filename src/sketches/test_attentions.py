@@ -1,4 +1,5 @@
-from django.test import TestCase, override_settings
+from .testing import AuthenticatedTestCase as TestCase
+from django.test import override_settings
 
 from .house_templates import TEMPLATES
 from .models import Attention
@@ -94,6 +95,7 @@ class AttentionTests(TestCase):
 
     @override_settings(DEBUG=False)
     def test_production_access_restricted(self):
+        self.client.logout()
         self.assertEqual(self.client.get('/atenciones/').status_code, 302)
         self.assertEqual(self.client.get('/atenciones/1/').status_code, 302)
 

@@ -1,7 +1,8 @@
 import json
 from decimal import Decimal
 
-from django.test import Client, SimpleTestCase, TestCase, override_settings
+from .testing import AuthenticatedTestCase as TestCase
+from django.test import Client, SimpleTestCase, override_settings
 
 from .domain import InvalidDocument
 from .house_calculator import HouseCalculatorForm, RECIPES, calculate_house
@@ -98,6 +99,7 @@ class DistributionApiTests(TestCase):
         client=Client(enforce_csrf_checks=True)
         self.assertEqual(client.post('/api/suggest-panels/','{}',content_type='application/json').status_code,403)
         with self.settings(DEBUG=False):
+            self.client.logout()
             self.assertEqual(self.client.post('/api/suggest-panels/','{}',content_type='application/json').status_code,403)
 
     def test_ten_cm_attention_preserves_unknown_quantities_after_save(self):

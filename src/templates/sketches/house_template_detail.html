@@ -1,8 +1,8 @@
 {% load static %}
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Croquis3R · {{ house.name }}</title><link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261020-sales2"><script defer src="{% static 'croquis/house-template.js' %}?v=20261020-sales2"></script></head>
+<title>Croquis3R · {{ house.name }}</title><link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-users1"><script defer src="{% static 'croquis/house-template.js' %}?v=20261022-users1"></script></head>
 <body data-unsaved="{{ unsaved|yesno:'true,false' }}">
-<header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a><nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Plantillas de casas</a></nav><span class="badge">Lista de referencia de TicoBlock</span></header>
+<header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a><nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Plantillas de casas</a></nav><span class="badge">Lista de referencia de TicoBlock</span>{% include 'sketches/_session.html' %}</header>
 <main>
   <div class="mode-nav"><a href="{% url 'house-templates' %}">← Elegir otra casa</a></div>
   <div class="intro"><div><p class="eyebrow">PLANTILLA / {{ house.area }} M² DECLARADOS</p><h1>{{ house.name }}</h1><p>Usa las cantidades originales o ajusta una copia para tu proyecto. Cambiar una cantidad no modifica el dibujo ni recalcula el diseño.</p></div><button type="button" id="print" {% if not result %}disabled{% endif %}>Imprimir lista ↗</button></div>

@@ -8,6 +8,7 @@ from django.http import Http404
 from django.utils import timezone
 
 from .models import Attention
+from .access import visible_to
 
 
 class AttentionFields(forms.Form):
@@ -25,7 +26,7 @@ def load_attention(request, kind, slug=""):
         return None
     if not raw.isdecimal() or len(raw) > 18:
         raise Http404("Atención no encontrada.")
-    record = Attention.objects.filter(pk=raw, kind=kind, template_slug=slug).first()
+    record = visible_to(Attention, request.user).filter(pk=raw, kind=kind, template_slug=slug).first()
     if record is None:
         raise Http404("Atención no encontrada.")
     return record
@@ -35,7 +36,7 @@ def saved_inputs(record):
     return {**record.inputs, "record_id": record.pk, "record_revision": record.revision}
 
 
-def save_attention(form, result, kind, version, slug="", copy=False):
+def save_attention(form, result, kind, version, slug="", copy=False, *, user):
     data = form.cleaned_data
     inputs = {key: value for key, value in data.items() if key not in ("record_id", "record_revision")}
     # Nunca se acepta un resultado calculado por el navegador como evidencia guardada.
@@ -45,16 +46,16 @@ def save_attention(form, result, kind, version, slug="", copy=False):
     pk = data.get("record_id")
     with transaction.atomic():
         if pk:
-            current = Attention.objects.filter(pk=pk, kind=kind, template_slug=slug).first()
+            current = visible_to(Attention, user).filter(pk=pk, kind=kind, template_slug=slug).first()
             if current is None:
                 form.add_error(None, "La atención ya no está disponible para este tipo de cálculo.")
                 return None
             if not copy:
                 revision = data.get("record_revision")
-                changed = Attention.objects.filter(pk=pk, kind=kind, template_slug=slug, revision=revision).update(
+                changed = visible_to(Attention, user).filter(pk=pk, kind=kind, template_slug=slug, revision=revision).update(
                     **values, revision=(revision or 0) + 1, updated_at=timezone.now())
                 if not changed:
                     form.add_error(None, "Otra sesión actualizó esta atención. Usa Guardar copia para conservar tus cambios.")
                     return None
                 return Attention.objects.get(pk=pk)
-        return Attention.objects.create(**values, kind=kind, template_slug=slug)
+        return Attention.objects.create(owner=user, **values, kind=kind, template_slug=slug)

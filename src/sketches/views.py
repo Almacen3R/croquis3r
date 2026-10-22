@@ -17,6 +17,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from catalog.providers import get_catalog_provider
 from .domain import validate_door_catalog, InvalidDocument, calculate, positive_int, validate_document
 from .models import ObjectTemplate, Sketch, Attention
+from .access import visible_to
 from .attention import load_attention, saved_inputs, save_attention
 from .house_calculator import HouseCalculatorForm, RECIPES, VERSION, calculate_house
 from .modulation import calculate_modulation
@@ -26,8 +27,7 @@ from .house_templates import (HouseTemplateForm, TEMPLATES, TEMPLATES_BY_SLUG,
 
 
 def authorized(request):
-    # Catálogo y expedientes compartidos por personal autorizado; anónimo solo en desarrollo local.
-    return settings.DEBUG or (request.user.is_authenticated and request.user.is_staff)
+    return request.user.is_authenticated and request.user.is_active
 
 
 def api(view):
@@ -85,7 +85,7 @@ def house_calculator(request):
             form.add_error(None, "Agrega al menos un paño antes de guardar una atención de casa.")
             saved = None
         else:
-            saved = save_attention(form, result, "manual", VERSION, copy=request.POST["action"] == "save_copy")
+            saved = save_attention(form, result, "manual", VERSION, user=request.user, copy=request.POST["action"] == "save_copy")
         if saved:
             return redirect("attention-detail", pk=saved.pk)
     groups = []
@@ -123,7 +123,7 @@ def house_template_detail(request, slug):
     else:
         result = template_result(template, form.cleaned_data) if form.is_valid() else None
     if result is not None and request.method == "POST" and request.POST.get("action") in ("save", "save_copy"):
-        saved = save_attention(form, result, "template", TEMPLATE_VERSION, slug,
+        saved = save_attention(form, result, "template", TEMPLATE_VERSION, slug, user=request.user,
                                copy=request.POST["action"] == "save_copy")
         if saved:
             return redirect("attention-detail", pk=saved.pk)
@@ -141,19 +141,19 @@ def attentions(request):
     if not authorized(request):
         return redirect_to_login(request.get_full_path())
     query = request.GET.get("q", "").strip()[:160]
-    records = Attention.objects.all()
+    records = visible_to(Attention, request.user)
     if query:
         records = records.filter(Q(project__icontains=query) | Q(customer__icontains=query))
     page = Paginator(records.defer("inputs", "notes"), 25).get_page(request.GET.get("page"))
     return render(request, "sketches/attentions.html", {"records": page, "query": query,
-        "sketches": Sketch.objects.order_by("-updated_at").values("id", "name", "is_template")[:20]})
+        "sketches": visible_to(Sketch, request.user).order_by("-updated_at").values("id", "name", "is_template")[:20]})
 
 
 @require_GET
 def attention_detail(request, pk):
     if not authorized(request):
         return redirect_to_login(request.get_full_path())
-    record = get_object_or_404(Attention, pk=pk)
+    record = get_object_or_404(visible_to(Attention, request.user), pk=pk)
     if record.kind == "manual":
         rows = [{"name": label, "quantity": quantity, "unit": unit} for label, quantity, unit in record.result["items"]]
         edit_url = reverse("house-calculator")
@@ -205,11 +205,11 @@ def panel_suggestion(request):
 @api
 def sketches(request):
     if request.method == "GET":
-        return JsonResponse({"sketches": list(Sketch.objects.values("id", "name", "is_template", "revision", "updated_at"))})
+        return JsonResponse({"sketches": list(visible_to(Sketch, request.user).values("id", "name", "is_template", "revision", "updated_at"))})
     data = payload(request)
     if type(data.get("is_template", False)) is not bool:
         raise InvalidDocument("El indicador de plantilla debe ser booleano.")
-    sketch = Sketch.objects.create(name=name(data), is_template=data.get("is_template", False),
+    sketch = Sketch.objects.create(owner=request.user, name=name(data), is_template=data.get("is_template", False),
         document=validate_door_catalog(validate_document(data.get("document"), articles_by_id())))
     return JsonResponse(serialize(sketch), status=201)
 
@@ -222,7 +222,7 @@ def serialize(sketch):
 @require_http_methods(["GET", "PUT"])
 @api
 def sketch_detail(request, pk):
-    sketch = Sketch.objects.filter(pk=pk).first()
+    sketch = visible_to(Sketch, request.user).filter(pk=pk).first()
     if not sketch:
         return JsonResponse({"error": "Croquis no encontrado."}, status=404)
     if request.method == "GET":
@@ -230,7 +230,7 @@ def sketch_detail(request, pk):
     data = payload(request)
     revision = positive_int(data.get("revision"), "Revisión")
     document = validate_door_catalog(validate_document(data.get("document"), articles_by_id()))
-    updated = Sketch.objects.filter(pk=pk, revision=revision).update(
+    updated = visible_to(Sketch, request.user).filter(pk=pk, revision=revision).update(
         name=name(data), document=document, revision=revision + 1, updated_at=timezone.now())
     if not updated:
         return JsonResponse({"error": "Otra sesión modificó este croquis. Guarde una copia o vuelva a abrirlo."}, status=409)
@@ -242,11 +242,11 @@ def sketch_detail(request, pk):
 @api
 def object_templates(request):
     if request.method == "GET":
-        return JsonResponse({"templates": list(ObjectTemplate.objects.order_by("name").values("id", "name", "specification"))})
+        return JsonResponse({"templates": list(visible_to(ObjectTemplate, request.user).order_by("name").values("id", "name", "specification"))})
     data = payload(request)
     document = validate_document({"version": 1, "objects": [data.get("specification")]}, articles_by_id())
     specification = document["objects"][0]
     if specification["kind"] != "wall":
         raise InvalidDocument("En esta primera versión las plantillas de objeto son de paredes.")
-    obj = ObjectTemplate.objects.create(name=name(data, 100), specification=specification)
+    obj = ObjectTemplate.objects.create(owner=request.user, name=name(data, 100), specification=specification)
     return JsonResponse({"id": obj.id, "name": obj.name, "specification": obj.specification}, status=201)

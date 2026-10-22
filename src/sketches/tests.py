@@ -1,7 +1,8 @@
 import json
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase, override_settings
+from .testing import AuthenticatedTestCase as TestCase
+from django.test import Client, override_settings
 
 from catalog.models import Article
 from .domain import InvalidDocument, calculate, validate_document
@@ -24,6 +25,7 @@ def document(*objects):
 
 class CalculationTests(TestCase):
     def setUp(self):
+        super().setUp()
         self.article = Article.objects.create(sku="TEST-BLOCK", name="Block de prueba")
         self.articles = {self.article.id: self.article}
         self.rule = {"article_id": self.article.id, "basis": "area", "factor": "12.5", "waste_percent": "5"}
@@ -94,6 +96,7 @@ class CalculationTests(TestCase):
 @override_settings(DEBUG=True)
 class ApiTests(TestCase):
     def setUp(self):
+        super().setUp()
         self.article = Article.objects.create(sku="DEMO-BLOCK", name="Block")
         self.data = {"name": "Casa 1", "document": document(wall()), "is_template": False}
 
@@ -175,18 +178,20 @@ class ApiTests(TestCase):
 
     def test_mutations_require_csrf(self):
         client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
         self.assertEqual(client.post("/api/sketches/", json.dumps(self.data), content_type="application/json").status_code, 403)
         self.assertEqual(client.get("/").status_code, 200)
         token = client.cookies["csrftoken"].value
         self.assertEqual(client.post("/api/sketches/", json.dumps(self.data), content_type="application/json", HTTP_X_CSRFTOKEN=token).status_code, 201)
 
     @override_settings(DEBUG=False, SECURE_SSL_REDIRECT=False)
-    def test_production_requires_staff_account(self):
+    def test_production_allows_active_sales_account_without_admin_access(self):
+        self.client.logout()
         self.assertEqual(self.client.get("/api/sketches/").status_code, 403)
         self.assertEqual(self.client.get("/").status_code, 302)
         user = get_user_model().objects.create_user(username="employee", password="test-password")
         self.client.force_login(user)
-        self.assertEqual(self.client.get("/api/sketches/").status_code, 403)
+        self.assertEqual(self.client.get("/api/sketches/").status_code, 200)
         user.is_staff = True
         user.save()
         self.assertEqual(self.client.get("/api/sketches/").status_code, 200)

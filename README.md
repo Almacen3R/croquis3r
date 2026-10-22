@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: desarrollo local, 19 de octubre de 2026.** Artículos y reglas ficticios. No sustituye el diseño ni la revisión profesional de una construcción. No hay conexión con la base real ni despliegue en servidor.
+**Estado: 22 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y catálogo comercial aún sin conectar. Las revisiones locales pendientes de aplicar están en [pendientes](docs/pendientes-ticoblock.md). No sustituye la revisión profesional de la construcción.
 
 ## Qué se puede probar
 
@@ -27,10 +27,11 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.lock
 .venv\Scripts\python.exe manage.py migrate
 .venv\Scripts\python.exe manage.py seed_demo
+.venv\Scripts\python.exe manage.py createsuperuser
 .venv\Scripts\python.exe manage.py runserver 127.0.0.1:8013
 ```
 
-Abrir <http://127.0.0.1:8013/>. SQLite se utiliza solo para facilitar esta prueba local; los croquis guardados quedan en `db.sqlite3`. No hace falta copiar `.env.example` para este modo. Si existe `.env`, debe tener `DB_ENGINE=sqlite`.
+Abrir <http://127.0.0.1:8013/> e iniciar sesión. Toda cuenta debe ser individual; vendedores activos ven sus registros y superusuarios ven todos. Las referencias originales de TicoBlock son comunes. Ver [usuarios y privacidad](docs/usuarios-y-privacidad.md). SQLite se utiliza solo para facilitar esta prueba local; los croquis guardados quedan en `db.sqlite3`. No hace falta copiar `.env.example` para este modo. Si existe `.env`, debe tener `DB_ENGINE=sqlite`.
 
 En esta estación, Python también está disponible en `C:\Users\PCVM-Pablo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe`; puede usarse para crear `.venv` si `python` no figura en PATH. El entorno `.venv` ya fue preparado para esta entrega.
 
@@ -122,3 +123,8 @@ Asistente por metros en el cálculo manual; preferencias de 2, 1,50, 1 y 0,50 m.
 ## Repositorio y actualización del servidor
 
 Repositorio oficial: https://github.com/Almacen3R/croquis3r · rama `main`. La instalación LAN existente se actualiza mediante [Git y actualización](docs/git-y-actualizacion.md), con respaldo previo y sin volver a importar datos locales. Los scripts de primera instalación no deben repetirse sobre el proyecto existente.
+
+## Usuarios y precios
+
+- [Cuentas, propiedad de registros, cierre de sesión y migración](docs/usuarios-y-privacidad.md).
+- [Artículos y variantes pendientes de vincular a precios de 3R](docs/articulos-para-precios.md).

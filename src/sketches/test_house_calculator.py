@@ -1,4 +1,5 @@
-from django.test import Client, SimpleTestCase, TestCase, override_settings
+from .testing import AuthenticatedTestCase as TestCase
+from django.test import Client, SimpleTestCase, override_settings
 
 from .house_calculator import HouseCalculatorForm, RECIPES, calculate_house
 
@@ -94,12 +95,14 @@ class HouseCalculatorViewTests(TestCase):
 
     @override_settings(DEBUG=False)
     def test_production_requires_authorized_user(self):
+        self.client.logout()
         self.assertEqual(self.client.get("/calculador-casas/").status_code, 302)
         self.assertEqual(self.client.post("/calculador-casas/", entries()).status_code, 302)
 
     @override_settings(DEBUG=True)
     def test_csrf_enforced(self):
         client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
         self.assertEqual(client.post("/calculador-casas/", entries()).status_code, 403)
         client.get("/calculador-casas/")
         response = client.post("/calculador-casas/", entries(),

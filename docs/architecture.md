@@ -47,7 +47,7 @@ La semilla contiene cuatro artículos ficticios. El ejemplo de pared usa 12,5 bl
 | `/api/sketches/<id>/` | GET, PUT | Leer y actualizar con revisión |
 | `/api/object-templates/` | GET, POST | Plantillas de pared |
 
-En desarrollo local (`DEBUG=1`) se permite acceso anónimo para probar. Fuera de desarrollo, las rutas del editor y la API requieren una cuenta activa con `is_staff`. Esto es acceso inicial de equipo; los permisos granulares quedan pendientes antes de ampliar el piloto. Django Admin administra las cuentas y el catálogo.
+Desde el 22-10-2026 todas las rutas del editor y API requieren cuenta activa, también en local. Usuarios normales y `is_staff` ven únicamente sus propios registros; solo `is_superuser` ve todos, incluidos históricos sin dueño. Las referencias originales de TicoBlock son comunes. Se filtran lecturas y escrituras por propietario en el servidor y se usa cierre de sesión POST con CSRF y respuestas privadas `no-store`. Ver [usuarios y privacidad](usuarios-y-privacidad.md). Django Admin administra cuentas y asignación de propietarios, restringida a superusuarios para estos modelos.
 
 ## Infraestructura prevista
 
