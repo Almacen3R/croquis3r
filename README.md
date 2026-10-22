@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: 22 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y catálogo comercial aún sin conectar. Las revisiones locales pendientes de aplicar están en [pendientes](docs/pendientes-ticoblock.md). No sustituye la revisión profesional de la construcción.
+**Estado: 22 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados probada en local, pendiente de aplicar al servidor. Las revisiones locales pendientes de aplicar están en [pendientes](docs/pendientes-ticoblock.md). No sustituye la revisión profesional de la construcción.
 
 ## Qué se puede probar
 
@@ -128,3 +128,5 @@ Repositorio oficial: https://github.com/Almacen3R/croquis3r · rama `main`. La i
 
 - [Cuentas, propiedad de registros, cierre de sesión y migración](docs/usuarios-y-privacidad.md).
 - [Artículos y variantes pendientes de vincular a precios de 3R](docs/articulos-para-precios.md).
+
+- [Homologación y consulta de precios 3R](docs/homologacion-precios-3r-2026-10-22.md): configuración externa de solo lectura, lista GENERAL/CRC e IVA incluido.

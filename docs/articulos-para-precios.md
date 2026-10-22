@@ -1,6 +1,6 @@
 # Artículos para vincular códigos y precios de 3R
 
-Fecha: 22-10-2026. Son los mismos productos TicoBlock que compra y vende 3R: se vinculan códigos/SKU, variantes, unidades y precios, no materiales sustitutos. No se consultó todavía la base comercial real.
+Fecha: 22-10-2026. Son los mismos productos TicoBlock que compra y vende 3R: se vinculan códigos/SKU, variantes, unidades y precios, no materiales sustitutos. Actualización: se consultó la base comercial real y se validaron 11 SKU contra Homologacion. Ver [correspondencias y reglas activas](homologacion-precios-3r-2026-10-22.md). Los listados siguientes conservan las necesidades de referencia; sus pendientes deben interpretarse junto a esa actualización.
 
 ## Materiales del cálculo actual
 

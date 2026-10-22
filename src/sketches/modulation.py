@@ -203,4 +203,4 @@ def calculate_modulation(document, articles):
                   for label, quantity, unit in result["items"]],
         "details": result["details"], "meters": result["meters"], "panels": result["panels"],
         "weight": None if columns_pending else result["weight"],
-        "notice": "Bloques según Excel; vigabloques con regla actualizada del 22-10-2026; división de paños propuesta para revisión. Columnas dibujadas o cantidades manuales según el croquis; sin catálogo real de 3R."}
+        "notice": "Bloques según Excel; vigabloques con regla actualizada del 22-10-2026; división de paños propuesta para revisión. Columnas dibujadas o cantidades manuales según el croquis; precios de 3R consultados por separado cuando la conexión está habilitada."}

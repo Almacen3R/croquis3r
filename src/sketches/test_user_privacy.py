@@ -11,7 +11,7 @@ from .house_templates import TEMPLATES
 from .tests import document, wall
 
 
-@override_settings(DEBUG=False, SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False)
+@override_settings(THREER_PRICING_ENABLED=False, DEBUG=False, SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False)
 class UserPrivacyTests(TestCase):
     def setUp(self):
         users = get_user_model()

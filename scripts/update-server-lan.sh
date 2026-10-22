@@ -97,9 +97,31 @@ assert sum(row.startswith('CROQUIS_RELEASE=') for row in rows)==1
 path.write_text('\n'.join('CROQUIS_RELEASE='+sys.argv[1] if row.startswith('CROQUIS_RELEASE=') else row for row in rows)+'\n')
 path.chmod(0o600)
 PY
+# Configuración privada opcional de precios, preparada fuera de Git.
+# Solo se admiten las claves THREER de esta integración; no altera PostgreSQL ni Django.
+python3 - <<'PYCFG'
+from pathlib import Path
+private=Path('/home/administrador/.config/croquis3r/sql-prices.env')
+if private.exists():
+    assert private.stat().st_mode & 0o077 == 0, 'La configuración SQL debe tener modo 600.'
+    allowed={'THREER_PRICING_ENABLED','THREER_SQL_HOST','THREER_SQL_PORT','THREER_SQL_DATABASE','THREER_SQL_SCHEMA','THREER_SQL_USER','THREER_SQL_PASSWORD','THREER_SQL_PRICE_LEVEL','THREER_SQL_CURRENCY','THREER_SQL_PRICE_INCLUDES_TAX'}
+    additions={}
+    for line in private.read_text().splitlines():
+        if not line or line.startswith('#'):continue
+        key,value=line.split('=',1)
+        assert key in allowed, 'Clave de configuración SQL inesperada.'
+        additions[key]=value
+    path=Path('.env.production')
+    rows=[line for line in path.read_text().splitlines() if line.split('=',1)[0] not in additions]
+    path.write_text('\n'.join(rows+[key+'='+value for key,value in additions.items()])+'\n')
+    path.chmod(0o600)
+    print('Configuración de precios cargada; valores privados omitidos.')
+PYCFG
 dc config --quiet
 dc build app
 dc run --rm --no-deps -T app python manage.py check
+# Verifica permisos SELECT y los SKU si se habilitó la conexión real.
+dc run --rm --no-deps -T app python manage.py shell --command "from django.conf import settings; from django.core.management import call_command; call_command('check_3r_prices') if settings.THREER_PRICING_ENABLED else print('Precios externos deshabilitados.')"
 # Solo se autoriza aquí la migración aditiva de propietarios: campos nulos,
 # sin asignar autorías históricas, borrar filas ni cambiar documentos/resultados.
 dc run --rm --no-deps -T app python manage.py shell --command "from django.db import connection; from django.db.migrations.executor import MigrationExecutor; executor=MigrationExecutor(connection); plan=executor.migration_plan(executor.loader.graph.leaf_nodes()); assert all(not backwards and (migration.app_label,migration.name)==('sketches','0003_record_owners') for migration,backwards in plan), 'Migraciones inesperadas; revisar antes de continuar.'; print('Plan de migraciones permitido:',[(m.app_label,m.name) for m,_ in plan])"

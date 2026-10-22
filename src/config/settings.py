@@ -65,3 +65,15 @@ if not DEBUG:
     # Para publicar por HTTPS debe conservarse el valor predeterminado seguro.
     SESSION_COOKIE_SECURE = os.getenv("DJANGO_COOKIE_SECURE", "1") == "1"
     CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+
+# Base comercial externa: consulta SELECT exclusivamente; nunca es la base de Django.
+THREER_PRICING_ENABLED = os.getenv('THREER_PRICING_ENABLED', '0') == '1'
+THREER_SQL_HOST = os.getenv('THREER_SQL_HOST', '')
+THREER_SQL_PORT = os.getenv('THREER_SQL_PORT', '1433')
+THREER_SQL_DATABASE = os.getenv('THREER_SQL_DATABASE', 'ALMACEN_3R')
+THREER_SQL_SCHEMA = os.getenv('THREER_SQL_SCHEMA', 'ALMACEN_3R')
+THREER_SQL_USER = os.getenv('THREER_SQL_USER', '')
+THREER_SQL_PASSWORD = os.getenv('THREER_SQL_PASSWORD', '')
+THREER_SQL_PRICE_LEVEL = os.getenv('THREER_SQL_PRICE_LEVEL', 'GENERAL')
+THREER_SQL_CURRENCY = os.getenv('THREER_SQL_CURRENCY', 'L')
+THREER_SQL_PRICE_INCLUDES_TAX = os.getenv('THREER_SQL_PRICE_INCLUDES_TAX', '1') == '1'

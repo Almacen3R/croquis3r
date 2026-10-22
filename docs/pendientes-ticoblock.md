@@ -63,3 +63,12 @@ Ver [regla y verificación de área/vigabloques](area-y-vigabloques-2026-10-22.m
 Se implementan propietarios por usuario, acceso global para superusuarios y cierre de sesión POST. [Reglas de privacidad y migración](usuarios-y-privacidad.md). Los históricos sin dueño se conservan y solo los administradores pueden verlos/asignarlos. Las referencias originales de promociones siguen comunes; las copias guardadas son personales. Antes no existía separación por usuario. Corrección local pendiente de despliegue y migración aditiva en el servidor.
 
 La [lista para vincular artículos y precios](articulos-para-precios.md) identifica productos/variantes y datos comerciales pendientes. Todavía no se conectó la base comercial ni se confirmaron códigos/precios reales. Pesos, mortero y acero de 10 cm siguen pendientes.
+
+
+## Homologación y precios — 22-10-2026
+
+Se verificó el archivo Homologacion de Drive y la conexión SQL de solo SELECT. Los 11 códigos suministrados están activos y sus precios de la lista GENERAL/CRC coinciden a dos decimales. Se corrigieron las descripciones cruzadas de bloques en el mapeo (TP50 → 44648; TP37 → 44649), sin editar Drive. Aclaración del usuario: columna comercial T = cruz, por tanto C lineal del croquis → 44647 y E esquina/cruz → 51234. Los precios ya incluyen IVA. [Reglas y correspondencias](homologacion-precios-3r-2026-10-22.md).
+
+Integración local en croquis, cálculo manual y plantillas, con precios/suma parcial y pendientes explícitos. Atenciones guardan una instantánea que no cambia al abrir. No se importó ni modificó la base comercial. Credenciales y reportes de valores fuera de Git. Falta aplicar al servidor el paquete de esta revisión. Mortero, varilla y varias medidas de aberturas siguen sin código; los consumos técnicos de 10 cm siguen pendientes.
+
+Activación de precios en producción: pendiente de autorización explícita para transferir/guardar la credencial SQL en el servidor de Croquis3R. La revisión automática rechazó ese envío; no se realizó. El código y el paquete se preparan sin credenciales.

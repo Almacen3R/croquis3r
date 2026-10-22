@@ -1,4 +1,4 @@
-"""Contrato de consulta: la futura integración real será de solo lectura."""
+"""Catálogo de asignaciones de ejemplo anteriores. Los precios reales se consultan en sql_prices.py, sin cambiar IDs históricos."""
 from .models import Article
 
 

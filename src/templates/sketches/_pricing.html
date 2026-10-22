@@ -1,0 +1,8 @@
+{% if pricing %}<section class="pricing-block" aria-label="Precios de referencia de 3R">
+<h3>Precios de 3R</h3><p class="hint">Lista {{ pricing.price_level }} · CRC · {% if pricing.includes_tax %}precios con IVA incluido{% else %}precios unitarios sin IVA; importes con IVA{% endif %}{% if pricing.fetched_display %}<br>Consultados: {{ pricing.fetched_display }} · caché de hasta un minuto{% endif %}</p>
+{% if pricing.error %}<p class="error-summary">{{ pricing.error }}</p>{% endif %}
+<div class="table-scroll"><table><thead><tr><th>Artículo / precio unitario</th><th>Cant.</th><th>Importe con IVA</th></tr></thead><tbody>
+{% for row in pricing.rows %}<tr><td>{{ row.name }}{% if row.sku %}<small>Código {{ row.sku }}</small>{% endif %}{% if row.status == 'ready' %}<small>{{ row.description }}</small><small>₡{{ row.unit_price|floatformat:'2g' }} / unidad</small>{% else %}<small>{{ row.reason }}</small>{% endif %}</td><td>{{ row.quantity|default_if_none:'Pendiente' }}</td><td>{% if row.status == 'ready' %}₡{{ row.amount|floatformat:'2g' }}{% else %}Pendiente{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+{% if pricing.priced_count %}<p><strong>Subtotal con precio: ₡{{ pricing.subtotal_with_prices|floatformat:'2g' }}</strong> · IVA incluido</p><p class="hint">Base: ₡{{ pricing.base_with_prices|floatformat:'2g' }} · IVA incluido en el subtotal: ₡{{ pricing.tax_with_prices|floatformat:'2g' }}</p>{% else %}<p>Subtotal no disponible.</p>{% endif %}
+{% if pricing.pending_count %}<p class="hint">{{ pricing.pending_count }} renglón(es) pendiente(s) de código, cantidad o precio. No se consideran cero.</p>{% endif %}<p class="hint">{{ pricing.notice }}</p></section>{% endif %}

@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 
+@override_settings(THREER_PRICING_ENABLED=False)
 class AuthenticatedTestCase(TestCase):
     """Existing calculation/view fixtures run as an administrator; privacy has separate tests."""
     def setUp(self):

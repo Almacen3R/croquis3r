@@ -15,6 +15,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods
 
 from catalog.providers import get_catalog_provider
+from catalog.pricing import quote, manual_rows, sketch_rows, template_rows
 from .domain import validate_door_catalog, InvalidDocument, calculate, positive_int, validate_document
 from .models import ObjectTemplate, Sketch, Attention
 from .access import visible_to
@@ -80,6 +81,8 @@ def house_calculator(request):
     record = load_attention(request, "manual") if request.method == "GET" else None
     form = HouseCalculatorForm(request.POST if request.method == "POST" else saved_inputs(record) if record else None)
     result = calculate_house(form.cleaned_data) if form.is_bound and form.is_valid() else None
+    if result is not None:
+        result["pricing"] = quote(manual_rows(result))
     if result is not None and request.method == "POST" and request.POST.get("action") in ("save", "save_copy"):
         if not result["panels"]:
             form.add_error(None, "Agrega al menos un paño antes de guardar una atención de casa.")
@@ -122,6 +125,8 @@ def house_template_detail(request, slug):
         result = template_result(template, original)
     else:
         result = template_result(template, form.cleaned_data) if form.is_valid() else None
+    if result is not None:
+        result["pricing"] = quote(template_rows(result))
     if result is not None and request.method == "POST" and request.POST.get("action") in ("save", "save_copy"):
         saved = save_attention(form, result, "template", TEMPLATE_VERSION, slug, user=request.user,
                                copy=request.POST["action"] == "save_copy")
@@ -191,7 +196,10 @@ def estimate(request):
 @require_http_methods(["POST"])
 @api
 def ticoblock_estimate(request):
-    return JsonResponse(calculate_modulation(payload(request).get("document"), articles_by_id()))
+    result = calculate_modulation(payload(request).get("document"), articles_by_id())
+    if result["status"] == "ready":
+        result["pricing"] = quote(sketch_rows(result))
+    return JsonResponse(result)
 
 
 @require_http_methods(["POST"])

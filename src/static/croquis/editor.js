@@ -252,7 +252,7 @@ function renderInspector() {
   });
 }
 function queueEstimate() {
-  state.estimate = null; state.estimateRequest++;
+  state.estimate = null; state.estimateRequest++; $('pricing').replaceChildren();
   $('estimate-status').textContent = 'Cambios pendientes de calcular…';
   $('material-items').replaceChildren(); $('material-warnings').replaceChildren(); $('calculation-details').replaceChildren();
   $('material-count').textContent = '—'; $('export-csv').disabled = true;
@@ -261,13 +261,14 @@ function queueEstimate() {
   clearTimeout(state.estimateTimer); state.estimateTimer = setTimeout(() => estimate(), 400);
 }
 async function estimate() {
+  $('pricing').replaceChildren();
   clearTimeout(state.estimateTimer);
   if(settingsDirty){$('estimate-status').textContent='Configuración pendiente: pulsa Aplicar configuración.';$('export-csv').disabled=true;return;}
   const request = ++state.estimateRequest;
   try {
     const result = await api('/api/ticoblock-estimate/', {method:'POST', body:JSON.stringify({document:state.document})});
     if (request !== state.estimateRequest) return;
-    state.estimate = result; renderEstimate();
+    state.estimate = result; renderEstimate(); renderPricing(result.pricing);
   } catch (error) {
     if (request !== state.estimateRequest) return;
     state.estimate = null; $('estimate-status').textContent = 'No se pudo calcular. Corrige el croquis.';
@@ -299,6 +300,29 @@ function renderEstimate() {
   for(const beam of result.beam_details||[])$('calculation-details').append(element('div',{class:'detail-row'},`Viga: ${fmt(beam.length)} m ÷ 0,40 → ${beam.pieces} piezas por hilada × ${result.beam_layers} hilada(s).`));
   $('material-weight').textContent = result.status !== 'ready' ? '' : result.weight === null ? (result.weight_note||'Peso pendiente de confirmar las cantidades de columnas.') : `Peso parcial según Excel: ${fmt(result.weight)} kg. Excluye vigabloques y acero.`;
   $('export-csv').disabled = !result.items.length;
+}
+function renderPricing(pricing) {
+  const container=$('pricing');container.replaceChildren();if(!pricing)return;
+  const cash=value=>Number(value).toLocaleString('es-CR',{style:'currency',currency:'CRC'});
+  container.append(element('h3',{},'Precios de 3R'),element('p',{class:'fine-print'},`Lista ${pricing.price_level} · ${pricing.includes_tax?'precios con IVA incluido':'precios unitarios sin IVA; importes con IVA'}${pricing.fetched_display?' · Consultados: '+pricing.fetched_display:''}. Caché de hasta un minuto.`));
+  if(pricing.error)container.append(element('p',{class:'material-warning'},pricing.error));
+  for(const row of pricing.rows) {
+    const card=element('div',{class:'material-item'}),left=element('div');
+    left.append(element('strong',{},row.name));
+    if(row.sku)left.append(element('small',{},`Código ${row.sku}`));
+    if(row.status==='ready') {
+      left.append(element('small',{},row.description),element('small',{},`${row.quantity} × ${cash(row.unit_price)}`));
+      card.append(left,element('div',{class:'material-quantity'},cash(row.amount)));
+    } else {
+      left.append(element('small',{},row.reason),element('small',{},`Cantidad: ${row.quantity===null?'pendiente':row.quantity}`));
+      card.append(left,element('div',{class:'material-quantity pending'},'Pendiente'));
+    }
+    container.append(card);
+  }
+  if(pricing.priced_count)container.append(element('p',{},`Subtotal con precio: ${cash(pricing.subtotal_with_prices)} · IVA incluido.`),element('p',{class:'fine-print'},`Base: ${cash(pricing.base_with_prices)} · IVA incluido en el subtotal: ${cash(pricing.tax_with_prices)}.`));
+  else container.append(element('p',{},'Subtotal no disponible.'));
+  if(pricing.pending_count)container.append(element('p',{class:'fine-print'},`${pricing.pending_count} renglón(es) pendiente(s); no se consideran cero.`));
+  container.append(element('p',{class:'fine-print'},pricing.notice));
 }
 function renderModulation() {
   renderDimensions();
