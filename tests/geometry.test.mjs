@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {uid, dimensionChains, dimensionLayout, snapPoint, openingPoints, duplicateObjects, resizeEndpoint, length, editOpening, placeOpening, transferOpening, doorSwing, columnPoint} from '../src/static/croquis/geometry.mjs';
+import {uid, dimensionChains, dimensionLayout, snapPoint, openingPoints, duplicateObjects, resizeEndpoint, length, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, floorArea} from '../src/static/croquis/geometry.mjs';
 
 const wall = {id:'a',kind:'wall',x1:0,y1:0,x2:4,y2:0,height:2.4,thickness:.15,assignments:[]};
 test('cotas unen tramos contiguos incluso con dirección invertida, sin unir líneas separadas',()=>{
@@ -193,4 +193,31 @@ test('arrastrar ambos extremos mantiene módulos válidos aun sin ajuste de cuad
       assert.ok(result.offset>=0 && result.offset+result.width<=4);
     }
   }
+});
+
+
+const perimeter = points => points.map(([x1,y1],i)=>{const [x2,y2]=points[(i+1)%points.length];return {x1,y1,x2,y2};});
+test('área en planta: rectángulo, L y triángulo diagonal sin usar caja envolvente',()=>{
+  assert.equal(floorArea(perimeter([[0,0],[4,0],[4,3],[0,3]])).area,12);
+  assert.equal(floorArea(perimeter([[0,0],[4,0],[4,1],[1,1],[1,4],[0,4]])).area,7);
+  assert.equal(floorArea(perimeter([[0,0],[3,0],[0,4]])).area,6);
+});
+test('área no duplica habitaciones, resuelve T/cruces y conserva paredes invertidas',()=>{
+  const outer=perimeter([[0,0],[4,0],[4,4],[0,4]]);
+  const partitions=[{x1:2,y1:0,x2:2,y2:4},{x1:0,y1:2,x2:4,y2:2}];
+  assert.equal(floorArea([...outer,...partitions]).area,16);
+  assert.equal(floorArea([...outer,...partitions].reverse().map(w=>({x1:w.x2,y1:w.y2,x2:w.x1,y2:w.y1}))).area,16);
+  assert.equal(floorArea([...outer,{x1:2,y1:0,x2:2,y2:2}]).area,16);
+});
+test('contorno abierto no inventa área y área parcial se distingue',()=>{
+  assert.deepEqual(floorArea([]),{area:null,partial:false});
+  const outer=perimeter([[0,0],[4,0],[4,3],[0,3]]);
+  assert.equal(floorArea(outer.slice(0,3)).area,null);
+  assert.deepEqual(floorArea([...outer,{x1:4,y1:0,x2:6,y2:0}]),{area:12,partial:true});
+  assert.equal(floorArea([...outer.slice(0,3),{x1:0,y1:3,x2:0,y2:.01}]).area,null);
+});
+test('recintos separados se suman y recinto aislado dentro de casa no duplica área',()=>{
+  const outer=perimeter([[0,0],[4,0],[4,4],[0,4]]);
+  assert.equal(floorArea([...outer,...perimeter([[1,1],[2,1],[2,2],[1,2]])]).area,16);
+  assert.equal(floorArea([...outer,...perimeter([[5,0],[7,0],[7,2],[5,2]])]).area,20);
 });

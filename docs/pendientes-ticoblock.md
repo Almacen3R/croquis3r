@@ -51,3 +51,8 @@ Verificación: 87 pruebas Django y 23 pruebas de geometría aprobadas, incluidas
 Tras la ejecución de la actualización por el usuario se comprobó por SSH el commit `a85dfb3aa61d848682c4608fe1ecf5cee35eb396`, sin cambios versionados en el servidor, y `/health/` respondió correctamente. En navegador autenticado contra la IP LAN se confirmó Estándar de 2 m como selección inicial y el cambio a Baño de 1,50 m con rótulos visibles. Se usó el ejemplo sin guardarlo.
 
 Prueba HTTP autenticada del guardado: los módulos de 0,50, 1 y 2,50 m devolvieron 400 con el mensaje de catálogo. Los módulos de 1,50, 2 y 3 m superaron la validación de catálogo y devolvieron 409 por una revisión deliberadamente incompatible. Esta revisión impidió cualquier escritura en las seis comprobaciones. Se comparó el documento completo y su revisión antes y después: sin cambios. No se crearon registros. Evidencia visual: `screenshots/puertas-catalogo-produccion.png`.
+
+
+## Actualización del 22 de octubre: área y viga de amarre
+
+Ver [regla y verificación de área/vigabloques](area-y-vigabloques-2026-10-22.md). La estimación de 12 cm incluye ahora viga a 2,50 m. El factor de 2,5 piezas por metro se verificó con la ficha nominal de 40 cm; se redondea hacia arriba por pared recta continua en croquis, o por paño independiente en el manual. No cambia la excepción de 10 cm ni sus pendientes de peso/mortero/acero. El área se muestra para contornos cerrados en planta, sin descontar espesores o patios. No se modifican resultados históricos guardados. Código local pendiente de desplegar.

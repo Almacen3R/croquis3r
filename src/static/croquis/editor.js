@@ -1,4 +1,4 @@
-const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
+const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
 
 const $ = id => document.getElementById(id);
 const svg = $('canvas');
@@ -139,6 +139,9 @@ function render() {
     }
   }
   $('object-count').textContent = `${allObjects().length} objetos`;
+  const footprint=floorArea(walls());
+  $('area-summary').textContent=footprint.area===null?'Área de la casa: cierra el contorno para calcularla':`${footprint.partial?'Área cerrada parcial':'Área de la casa'}: ${fmt(footprint.area)} m²`;
+  $('area-summary').title='Superficie en planta sobre las líneas de referencia de las paredes; no es área útil ni área de paredes. Las divisiones interiores no se suman otra vez. Los contornos abiertos no aportan superficie.';
   $('geometry-summary').textContent = `${walls().length} paredes · ${fmt(walls().reduce((sum, w) => sum + length(w), 0))} m lineales`;
   $('undo').disabled = !state.history.length && !settingsDirty; $('redo').disabled = !state.future.length;
   $('object-list').replaceChildren();
@@ -254,7 +257,7 @@ function queueEstimate() {
   $('material-items').replaceChildren(); $('material-warnings').replaceChildren(); $('calculation-details').replaceChildren();
   $('material-count').textContent = '—'; $('export-csv').disabled = true;
   $('modulation').replaceChildren(); $('modulation-issues').replaceChildren();
-  $('material-weight').textContent='';
+  $('material-weight').textContent=''; $('beam-summary').textContent='';
   clearTimeout(state.estimateTimer); state.estimateTimer = setTimeout(() => estimate(), 400);
 }
 async function estimate() {
@@ -292,6 +295,8 @@ function renderEstimate() {
     $('calculation-details').append(element('div', {class:'detail-row'}, `${d.label} · desde ${fmt(d.start)} m: ${d.kind}, ${fmt(d.length)} m → ${d.tp50} ${result.block_long_name} + ${d.tp37} ${result.block_short_name} (${d.source})`));
   }
   renderModulation();
+  $('beam-summary').textContent = result.status!=='ready'?'':result.block_family==='10'?'10 cm: no lleva vigabloques; requiere perling o chorreado por cotizar.':`Viga de amarre: ${result.beam_layers} hilada(s). Se divide cada pared recta continua entre 0,40 m y se redondea hacia arriba, sin descontar puertas ni ventanas. No se vuelve a redondear en cada paño.`;
+  for(const beam of result.beam_details||[])$('calculation-details').append(element('div',{class:'detail-row'},`Viga: ${fmt(beam.length)} m ÷ 0,40 → ${beam.pieces} piezas por hilada × ${result.beam_layers} hilada(s).`));
   $('material-weight').textContent = result.status !== 'ready' ? '' : result.weight === null ? (result.weight_note||'Peso pendiente de confirmar las cantidades de columnas.') : `Peso parcial según Excel: ${fmt(result.weight)} kg. Excluye vigabloques y acero.`;
   $('export-csv').disabled = !result.items.length;
 }
@@ -499,7 +504,7 @@ function markSettingsPending(){
   settingsDirty=true; state.estimateRequest++;clearTimeout(state.estimateTimer);
   $('undo').disabled=false;
   state.estimate=null;$('modulation').replaceChildren();$('material-items').replaceChildren();$('calculation-details').replaceChildren();
-  $('material-weight').textContent='';
+  $('material-weight').textContent=''; $('beam-summary').textContent='';
   $('material-count').textContent='—';$('export-csv').disabled=true;
   $('estimate-status').textContent='Configuración pendiente: pulsa Aplicar configuración.';
 }

@@ -4,8 +4,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Croquis3R · Calculador de casas</title>
-  <link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261021-meters1">
-  <script defer src="{% static 'croquis/house-calculator.js' %}?v=20261021-meters1"></script>
+  <link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-beams1">
+  <script defer src="{% static 'croquis/house-calculator.js' %}?v=20261022-beams1"></script>
 </head>
 <body data-unsaved="{{ unsaved|yesno:'true,false' }}">
   <header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a>
@@ -73,18 +73,19 @@
             <table class="materials"><caption>Para la altura seleccionada</caption><thead><tr><th>Material</th><th>Cantidad</th></tr></thead><tbody>
               {% for label, quantity, unit in result.items %}<tr><td>{{ label }}<small>{{ unit }}</small></td><td>{{ quantity|default_if_none:'Pendiente' }}</td></tr>{% endfor %}
             </tbody></table>
+            {% if result.block_family == '12' %}<p class="hint">Viga de amarre: {{ result.beam_layers }} hilada(s). Piezas de 0,40 m; cada paño se redondea hacia arriba por separado. Si varios paños forman una pared continua, usa el croquis para agruparla y aprovechar los cortes.</p>{% endif %}
             {% if result.weight != None %}<p class="weight"><strong>{{ result.weight }} kg</strong> · peso parcial según Excel</p>{% else %}<p class="weight">Peso de la familia de 10 cm pendiente de confirmar.</p>{% endif %}
             {% if result.block_family == '12' %}<p class="hint">Peso parcial con factores heredados del Excel: TP37 (11 kg), TP50 (16 kg), columnas (108 kg) y mortero (40 kg). Excluye vigabloques y acero. El peso vigente de cada producto requiere confirmación.</p>
             <details><summary>Cómo se calculó</summary>
               <ul class="formulas"><li>Mortero: ({{ result.tp50 }} + {{ result.tp37 }}) ÷ 20, redondeado hacia arriba = {{ result.mortar }}.</li>
                 <li>Varilla de pared: suma de factores {{ result.wall_factor }} → {{ result.wall_steel }}.</li>
-                <li>Una hilada: {{ result.meters }} m × 2,5 → {{ result.beam_one }} vigabloques; dos hiladas: {{ result.beam_two }}.</li>
+                <li>Vigabloques de 0,40 m: cada paño se calcula por separado, largo ÷ 0,40 redondeado hacia arriba; suma por hilada: {{ result.beam_one }}. Hiladas aplicadas: {{ result.beam_layers }}. Total: {{ result.beam }}.</li>
                 <li>Varilla de viga: {{ result.meters }} m ÷ 6 → {{ result.steel_one }} para una hilada, {{ result.steel_two }} para dos.</li></ul>
-              <p class="hint">Salvo mortero, se conserva el redondeo al entero más cercano del Excel; las mitades suben. Dos hiladas duplican el resultado ya redondeado.</p>
+              <p class="hint">Mortero y vigabloques se redondean hacia arriba. Las varillas conservan el redondeo al entero más cercano del Excel; las mitades suben. En este cálculo cada paño se redondea por separado; el croquis agrupa los paños de cada pared recta continua antes de redondear y puede aprovechar mejor los cortes.</p>
             </details>
             {% endif %}<div class="warnings"><strong>Alcance y revisión</strong><ul>{% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></div>
           {% else %}<div class="empty"><span>▤</span><h3>El desglose empieza aquí.</h3><p>Agrega paños y columnas, elige la altura y pulsa «Calcular materiales».</p></div>{% endif %}
-          <p class="version">Recetas: {{ version }}<br>MODULADOR TICOBLOCK MANUAL y aclaraciones TicoBlock del 21-10-2026. Falta vincular los códigos de estos mismos productos en el catálogo de 3R.</p>
+          <p class="version">Recetas: {{ version }}<br>MODULADOR TICOBLOCK MANUAL y aclaraciones TicoBlock del 21 y 22-10-2026. Falta vincular los códigos de estos mismos productos en el catálogo de 3R.</p>
         </aside>
       </div>
     </form>

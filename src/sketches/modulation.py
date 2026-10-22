@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from .domain import validate_document, validate_ticoblock_settings
 from .house_calculator import RECIPES, calculate_house
+from .beams import beam_runs
 
 EPS = 0.000001
 KINDS = {"regular": "Ventana regular", "kitchen": "Ventana cocina", "bath": "Ventana baño"}
@@ -162,7 +163,7 @@ def calculate_modulation(document, articles):
     if drawn_columns is not None:
         settings["linear_columns"] = sum(c["column_type"] == "C" for c in drawn_columns)
         settings["t_columns"] = sum(c["column_type"] == "E" for c in drawn_columns)
-    result = calculate_house({**counts, **settings, "height": layers, "column_mode": "manual", "block_family": next(iter(families), "12")})
+    result = calculate_house({**counts, **settings, "height": layers, "column_mode": "manual", "block_family": next(iter(families), "12")}, beam_lengths=beam_runs(walls))
     nodes = {}
     for segment in segments:
         for n in (1, 2):
@@ -193,12 +194,13 @@ def calculate_modulation(document, articles):
     return {"status": "ready", "columns_pending": columns_pending, "version": result["version"], "segments": segments,
         "block_family": result["block_family"], "block_long_name": result["block_long_name"], "block_short_name": result["block_short_name"],
         "weight_note": "Peso de los productos de 10 cm pendiente de confirmar." if result["block_family"]=="10" else "Peso pendiente de confirmar las cantidades de columnas.",
+        "beam_layers": result["beam_layers"], "beam_details": result["beam_details"], "beam_basis": result["beam_basis"],
         "column_mode": "drawn" if drawn_columns is not None else "manual",
         "drawn_column_count": len(drawn_columns or []), "missing_column_positions": missing_columns,
         "column_positions": list(nodes.values()), "issues": [], "warnings": warnings,
         "items": [{"sku": "", "name": label, "quantity": None if columns_pending and drawn_columns is None and label.startswith("Columna") else quantity, "unit": unit,
-                   "source": "Receta del modulador TicoBlock", "is_demo": False}
+                   "source": "Ficha N-12: 40 cm; aclaración 22-10-2026 y redondeo superior por pared" if label=="Vigabloque" else "Receta del modulador TicoBlock", "is_demo": False}
                   for label, quantity, unit in result["items"]],
         "details": result["details"], "meters": result["meters"], "panels": result["panels"],
         "weight": None if columns_pending else result["weight"],
-        "notice": "Cantidades según Excel de TicoBlock; división de paños propuesta para revisión. Columnas dibujadas o cantidades manuales según el croquis; sin catálogo real de 3R."}
+        "notice": "Bloques según Excel; vigabloques con regla actualizada del 22-10-2026; división de paños propuesta para revisión. Columnas dibujadas o cantidades manuales según el croquis; sin catálogo real de 3R."}

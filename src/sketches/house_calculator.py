@@ -1,6 +1,7 @@
 """Recetas transcritas del modulador manual recibido el 20-10-2026.
 
-Conserva ROUND de Excel (mitades hacia arriba) y no incorpora reglas estructurales.
+Conserva ROUND de Excel para varillas; vigabloques con redondeo superior por tramo
+según aclaración del 22-10-2026. No incorpora reglas estructurales.
 Actualización 21-10-2026: familias de 10/12 cm y módulos comerciales de puertas
 confirmados por el usuario tras su reunión con TicoBlock; ver docs/aclaraciones-ticoblock-2026-10-21.md.
 Referencias completas: docs/investigacion-ticoblock-2026-10-20.md, secciones 4 y 5.
@@ -10,8 +11,9 @@ from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
 
 from django import forms
 from .attention import AttentionFields
+from .beams import pieces
 
-VERSION = "ticoblock-manual-2026-10-21-v3"
+VERSION = "ticoblock-manual-2026-10-22-v4"
 
 
 @dataclass(frozen=True)
@@ -68,7 +70,7 @@ class HouseCalculatorForm(AttentionFields):
     panel_19 = forms.IntegerField(label="Puertas antiguas de módulo 1 m · por revisar", required=False,
                                   min_value=0, max_value=100, initial=0)
     height = forms.TypedChoiceField(label="Altura de referencia", coerce=int, initial=0,
-        choices=((0, "2,50 m · base, sin vigabloques adicionales"),
+        choices=((0, "2,50 m · viga de amarre incluida (12 cm)"),
                  (1, "2,70 m · una hilada de vigabloque"),
                  (2, "2,90 m · dos hiladas de vigabloque")))
     column_mode = forms.ChoiceField(label="Cómo contar columnas", initial="manual",
@@ -106,7 +108,7 @@ def excel_round(value):
     return int(value.to_integral_value(rounding=ROUND_HALF_UP))
 
 
-def calculate_house(data):
+def calculate_house(data, *, beam_lengths=None):
     """Recibe exclusivamente cleaned_data del formulario validado."""
     family = data.get('block_family') or '12'
     narrow = family == '10'
@@ -127,9 +129,14 @@ def calculate_house(data):
     mortar = int((Decimal(tp50 + tp37) / 20).to_integral_value(rounding=ROUND_CEILING))
     wall_factor = sum((row["steel"] for row in details), Decimal(0))
     wall_steel = excel_round(wall_factor)
-    beam_one = excel_round(meters * Decimal("2.5"))
+    # Sin geometría, cada paño es un tramo independiente. El croquis entrega
+    # paredes rectas continuas para no redondear en columnas, ventanas o puertas.
+    lengths = beam_lengths if beam_lengths is not None else [Decimal(row['length']) for row in details for _ in range(row['quantity'])]
+    beam_details = [{'length': value, 'pieces': pieces(value)} for value in lengths]
+    beam_one = sum(row['pieces'] for row in beam_details)
     steel_one = excel_round(meters / 6)
-    layers = data["height"]
+    height = data["height"]
+    layers = max(1, height)
     chain = data["column_mode"] == "chain"
     # La cadena vacía produce cero en la web; Excel conserva una columna por N+1.
     linear = (panels + 1 if panels else 0) if chain else data["linear_columns"]
@@ -137,6 +144,9 @@ def calculate_house(data):
     warnings = ["Estimación del modulador recibido: no incluye cimentación, techo, instalaciones, "
                 "rellenos ni todos los materiales de una casa.",
                 "Varilla: equivalentes según Excel; largos, cortes, anclajes y traslapes por confirmar."]
+    if not narrow:
+        warnings.append('Vigabloques N-12: 40 cm nominales; redondeo hacia arriba por pared recta continua en croquis y por paño en cálculo manual. No se reutilizan recortes entre tramos. Se incluye una hilada de amarre a 2,50 y 2,70 m; dos a 2,90 m. No se agrega una tercera hilada.')
+        warnings.append('La hilada de amarre a 2,50 m se incorpora por aclaración del 22-10-2026. La composición de la altura terminada, el acero y el relleno requieren revisión; no se modifica la receta base de bloques.')
     if chain:
         warnings.append("Paños + 1 solo representa una cadena abierta. No resuelve esquinas, "
                         "intersecciones ni casas cerradas; las cantidades manuales se ignoran en este modo.")
@@ -161,12 +171,14 @@ def calculate_house(data):
         mortar = wall_steel = wall_factor = weight = None
         beam_one = steel_one = layers = 0
     return {"version": VERSION, "block_family": family, "block_long_name": long_name, "block_short_name": short_name,
-        "floor_level": data.get('floor_level', 1), "height_label": {0: "2,50 m", 1: "2,70 m", 2: "2,90 m"}[layers],
+        "floor_level": data.get('floor_level', 1), "height_label": {0: "2,50 m", 1: "2,70 m", 2: "2,90 m"}[height],
         "panels": panels, "meters": meters, "details": details,
         "tp50": tp50, "tp37": tp37, "mortar": mortar,
         "linear_columns": linear, "t_columns": t,
         "columns": linear + t, "beam": beam_one * layers,
         "beam_one": beam_one, "beam_two": beam_one * 2,
+        "beam_layers": layers, "beam_details": [] if narrow else beam_details,
+        "beam_basis": "pared recta continua" if beam_lengths is not None else "paño independiente",
         "wall_steel": wall_steel, "wall_factor": wall_factor,
         "beam_steel": steel_one * layers, "steel_one": steel_one,
         "steel_two": steel_one * 2, "steel_total": None if narrow else wall_steel + steel_one * layers,

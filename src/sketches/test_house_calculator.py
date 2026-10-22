@@ -39,7 +39,7 @@ class HouseCalculationTests(SimpleTestCase):
         result = self.calculate(**{recipe.key: "1" for recipe in RECIPES}, height="1")
         self.assertEqual((result["tp50"], result["tp37"], result["columns"], result["beam"],
                           result["mortar"], result["wall_steel"], result["beam_steel"], result["weight"]),
-                         (168, 122, 19, 61, 15, 11, 4, 6682))
+                         (168, 122, 19, 68, 15, 11, 4, 6682))
         self.assertEqual(str(result["meters"]), "24.5")
 
     def test_empty_chain_has_no_phantom_column(self):
@@ -62,11 +62,11 @@ class HouseCalculationTests(SimpleTestCase):
     def test_door_adds_length_without_wall_blocks_or_wall_steel(self):
         result = self.calculate(panel_18="1", panel_101="1", panel_102="1", height="1")
         self.assertEqual((result["tp50"], result["tp37"], result["mortar"], result["wall_steel"], result["beam"]),
-                         (0, 0, 0, 0, 16))
+                         (0, 0, 0, 0, 17))
 
-    def test_no_additional_beam_at_base_height(self):
+    def test_base_height_includes_one_crown_beam(self):
         result = self.calculate(panel_4="1")
-        self.assertEqual((result["beam"], result["beam_steel"]), (0, 0))
+        self.assertEqual((result["beam"], result["beam_steel"]), (5, 0))
 
     def test_invalid_inputs_rejected(self):
         for key, value in (("panel_4", "-1"), ("panel_4", "1.5"), ("panel_4", "101"),

@@ -79,7 +79,7 @@ class ModulationTests(SimpleTestCase):
         walls = [wall(), wall("b", 4, 0, 4, 3), wall("c", 4, 3, 0, 3), wall("d", 0, 3, 0, 0)]
         result = calculate_modulation(doc(*walls, opening(), opening("door", "door", wall_id="c", offset=1, width=2), max_span="1.5"), {})
         self.assertEqual(result["status"], "ready")
-        self.assertEqual([row["quantity"] for row in result["items"]], [173, 101, None, None, 0, 14, 8, 0])
+        self.assertEqual([row["quantity"] for row in result["items"]], [173, 101, None, None, 36, 14, 8, 2])
         self.assertTrue(result["columns_pending"])
         self.assertEqual((result["panels"], result["meters"], len(result["column_positions"])), (10, 14, 10))
         self.assertEqual(sum(s["kind"] == "Puerta estándar" for s in result["segments"]), 1)
@@ -97,7 +97,7 @@ class ModulationTests(SimpleTestCase):
                  opening('p','door',wall_id='c',offset=1,width=1.5),linear_columns=6,t_columns=4)
         result=calculate_modulation(data,{})
         self.assertEqual(result['status'],'ready')
-        self.assertEqual([r['quantity'] for r in result['items']],[219,94,6,4,0,16,10,0])
+        self.assertEqual([r['quantity'] for r in result['items']],[219,94,6,4,40,16,10,3])
         self.assertEqual((result['panels'],result['meters'],result['weight']),(10,16,6258))
         self.assertEqual(len(result['column_positions']),10)
         right=sorted((s for s in result['segments'] if s['wall_id']=='b'),key=lambda s:s['start'])

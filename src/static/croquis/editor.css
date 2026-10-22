@@ -5,3 +5,5 @@
 #modulation-settings .field-grid label{font-size:10px;color:#788d79}#modulation-settings input{margin:6px 0 12px}#modulation-settings select{font-size:11px}.modulation-issue{display:block;width:100%;text-align:left;padding:10px;margin:8px 0;border-color:#e1c7a5;background:#fff4e5;color:#875f32;font-size:11px;line-height:1.6}.legacy-rules{margin-top:24px}.material-quantity small{white-space:normal;max-width:90px}
 .modulation-config{font-size:11px;line-height:1.7;margin:12px 0}.modulation-config summary{cursor:pointer;color:#2c6851}.modulation-config form{margin-top:12px}#estimate-status{line-height:1.7}.material-quantity.pending{font-size:12px;color:#9a793d}
 @media(max-width:560px){.sidebar>.field-label[for="project-name"]{display:block}.sidebar>.button-pair.minor{display:flex}.topbar .calculator-link{font-size:9px!important}.topbar{gap:8px}}
+
+#area-summary { padding: 12px 16px; border: 1px solid #d5e3d6; border-radius: 8px; background: #edf4eb; color: #285f4b; font-size: 18px; font-weight: 600; }

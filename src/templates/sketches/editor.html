@@ -65,6 +65,7 @@
       </div>
       <div class="under-canvas"><span><i class="green-dot"></i> <span id="geometry-summary">Croquis conceptual</span></span><span>Extremos editables · largos modulares de referencia</span></div>
       <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+      <p id="area-summary" class="panel-copy" aria-live="polite">Área de la casa: cierra el contorno para calcularla</p><p class="fine-print">Área en planta sobre las líneas de referencia de las paredes. No descuenta espesores ni patios interiores.</p>
       <section class="objects-strip"><div class="section-heading">OBJETOS DEL CROQUIS <span id="selection-label">Selecciona para editar</span></div><div id="object-list" class="object-list"></div></section>
     </main>
 
@@ -91,7 +92,7 @@
         <div class="inspector-title"><div><div class="eyebrow">RECETAS DEL EXCEL / TICOBLOCK</div><h2>Lista de materiales</h2></div></div>
         <p class="panel-copy">Se proponen paños en los tramos libres y recetas de aberturas. Los largos dibujados son referencias modulares; no se ha confirmado su equivalencia a medidas libres o ejes de columnas.</p>
         <details class="modulation-config"><summary>Configurar altura, división y columnas</summary><form id="modulation-settings">
-          <label class="field-label" for="house-height">Altura para todas las paredes</label><select id="house-height" required><option value="" disabled>Elige una altura admitida</option><option value="2.5">2,50 m</option><option value="2.7">2,70 m · una hilada adicional</option><option value="2.9">2,90 m · dos hiladas adicionales</option></select>
+          <label class="field-label" for="house-height">Altura para todas las paredes</label><select id="house-height" required><option value="" disabled>Elige una altura admitida</option><option value="2.5">2,50 m</option><option value="2.7">2,70 m · una hilada de viga</option><option value="2.9">2,90 m · dos hiladas de viga</option></select>
           <label class="field-label" for="house-thickness">Familia de bloques para todas las paredes</label><select id="house-thickness" required><option value="" disabled>Elige el espesor de las fichas cargadas</option><option value="0.12">12 cm · TP50/TP37 · recomendado</option><option value="0.1">10 cm · TP48/TP40 · solo 2,50 m</option></select>
           <label class="field-label" for="floor-level">Nivel del proyecto</label><select id="floor-level"><option value="1">Primera planta o tapia</option><option value="2">Segundo piso · 12 cm con columnas</option></select>
           <p class="fine-print">10 cm: solo 2,50 m, sin vigas de bloques; perling o chorreado se cotizan por separado. Segundo piso: 12 cm con columnas; no dimensiona entrepiso ni cimentación.</p>
@@ -103,7 +104,7 @@
           <button type="submit" class="full secondary">Aplicar configuración</button>
         </form></details>
         <label class="field-label"><input type="checkbox" id="show-panels" checked> Mostrar límites propuestos de paños</label>
-        <button id="recalculate" class="full secondary">Recalcular</button><div id="estimate-status" class="save-status" role="status"></div><div id="modulation-issues"></div><div id="material-items"></div><p id="material-weight" class="panel-copy"></p><details class="calculation-details"><summary>Alcance y pendientes de revisión</summary><div id="material-warnings"></div></details><button id="export-csv" class="full secondary spaced-small">↓ Descargar lista CSV</button><details class="calculation-details"><summary>Ver paños y aporte por pared</summary><div id="calculation-details"></div></details>
+        <button id="recalculate" class="full secondary">Recalcular</button><div id="estimate-status" class="save-status" role="status"></div><div id="modulation-issues"></div><div id="material-items"></div><p id="beam-summary" class="panel-copy"></p><p id="material-weight" class="panel-copy"></p><details class="calculation-details"><summary>Alcance y pendientes de revisión</summary><div id="material-warnings"></div></details><button id="export-csv" class="full secondary spaced-small">↓ Descargar lista CSV</button><details class="calculation-details"><summary>Ver paños y aporte por pared</summary><div id="calculation-details"></div></details>
       </div>
       <div class="demo-notice"><strong>ESTIMACIÓN SEGÚN MODULADOR</strong><p>12 cm: alturas de 2,50, 2,70 o 2,90 m. 10 cm: solo 2,50 m y sin vigas de bloques. Las marcas de paños son propuestas; los tipos de columna requieren confirmación. No incluye todos los materiales de la casa ni consulta existencias o precios de 3R.</p></div>
     </aside>

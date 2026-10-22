@@ -1,3 +1,5 @@
+> Actualización 22-10-2026: las referencias históricas de este documento a cero vigabloques a 2,50 m y redondeo normal quedan reemplazadas para nuevos cálculos por la [regla de viga de amarre y redondeo superior](area-y-vigabloques-2026-10-22.md). Las comprobaciones anteriores se conservan como historial.
+
 # Estado vigente — 21 de octubre de 2026
 
 Las aclaraciones de TicoBlock del 21-10-2026 sustituyen las dudas y opciones anteriores sobre puertas, espesores y alturas. Consulta [reglas confirmadas](aclaraciones-ticoblock-2026-10-21.md). La versión actual es `ticoblock-manual-2026-10-21-v3`; las secciones de verificación fechadas conservan la historia de pruebas.

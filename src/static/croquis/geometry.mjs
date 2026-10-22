@@ -229,3 +229,69 @@ export function duplicateObjects(objects, object) {
 export function doorName(width) {
   return ({1.5:'Puerta de baño',2:'Puerta Estándar',3:'Puerta Amplia'})[width] || 'Puerta fuera de catálogo · corregir';
 }
+
+
+// Área de las caras cerradas del grafo de paredes, medida sobre sus líneas de referencia.
+// Divide cruces/T antes de recorrer caras; las divisiones interiores no duplican superficie.
+export function floorArea(walls) {
+  const eps=1e-7, cross=(a,b)=>a.x*b.y-a.y*b.x;
+  const edges=new Map(), nodes=new Map();
+  const key=p=>`${+p.x.toFixed(6)},${+p.y.toFixed(6)}`;
+  const point=(w,t)=>({x:w.x1+(w.x2-w.x1)*t,y:w.y1+(w.y2-w.y1)*t});
+  const cuts=walls.map(()=>[0,1]);
+  for(let i=0;i<walls.length;i++)for(let j=i+1;j<walls.length;j++) {
+    const a=walls[i],b=walls[j],r={x:a.x2-a.x1,y:a.y2-a.y1},s={x:b.x2-b.x1,y:b.y2-b.y1};
+    const q={x:b.x1-a.x1,y:b.y1-a.y1},d=cross(r,s);
+    if(Math.abs(d)>eps) {
+      const t=cross(q,s)/d,u=cross(q,r)/d;
+      if(t>=-eps&&t<=1+eps&&u>=-eps&&u<=1+eps){cuts[i].push(Math.max(0,Math.min(1,t)));cuts[j].push(Math.max(0,Math.min(1,u)));}
+    } else if(Math.abs(cross(q,r))<eps) {
+      for(const [w,v,index] of [[a,b,i],[b,a,j]])for(const n of [1,2]) {
+        const dx=w.x2-w.x1,dy=w.y2-w.y1,den=dx*dx+dy*dy;
+        if(den<eps)continue;
+        const t=((v[`x${n}`]-w.x1)*dx+(v[`y${n}`]-w.y1)*dy)/den;
+        if(t>eps&&t<1-eps)cuts[index].push(t);
+      }
+    }
+  }
+  const connect=(a,b)=>{
+    const ka=key(a),kb=key(b);if(ka===kb)return;
+    for(const [k,p] of [[ka,a],[kb,b]])if(!nodes.has(k))nodes.set(k,{...p,adj:new Set()});
+    nodes.get(ka).adj.add(kb);nodes.get(kb).adj.add(ka);
+    edges.set([ka,kb].sort().join('|'),[ka,kb]);
+  };
+  walls.forEach((w,i)=>{const ts=[...new Set(cuts[i])].sort((a,b)=>a-b);for(let n=1;n<ts.length;n++)connect(point(w,ts[n-1]),point(w,ts[n]));});
+  for(const node of nodes.values())node.adj=[...node.adj].sort((a,b)=>Math.atan2(nodes.get(a).y-node.y,nodes.get(a).x-node.x)-Math.atan2(nodes.get(b).y-node.y,nodes.get(b).x-node.x));
+  const visited=new Set(),faces=[],used=new Set();
+  for(const [a,b] of edges.values())for(const [start,end] of [[a,b],[b,a]]) {
+    if(visited.has(`${start}|${end}`))continue;
+    let u=start,v=end;const ring=[],ringEdges=[];
+    do {
+      visited.add(`${u}|${v}`);ring.push(nodes.get(u));ringEdges.push([u,v].sort().join('|'));
+      const adjacent=nodes.get(v).adj,index=adjacent.indexOf(u),next=adjacent[(index+adjacent.length-1)%adjacent.length];
+      u=v;v=next;
+    } while((u!==start||v!==end)&&ring.length<=2*edges.size);
+    const area=ring.reduce((sum,p,i)=>sum+cross(p,ring[(i+1)%ring.length]),0)/2;
+    if(area>eps){faces.push({ring,area});for(const e of ringEdges)used.add(e);}
+  }
+  const inside=(p,ring)=>{
+    let found=false;
+    for(let i=0,j=ring.length-1;i<ring.length;j=i++) {
+      const a=ring[i],b=ring[j];
+      if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)found=!found;
+    }
+    return found;
+  };
+  // Un recinto cerrado aislado dentro de otro ya forma parte de su superficie.
+  // Las caras de un mismo componente ya son disjuntas. Solo comparar
+  // componentes separados evita trabajo cuadrático en croquis con muchos cuartos.
+  let component=0;
+  for(const node of nodes.values())if(node.component===undefined) {
+    const pending=[node];node.component=component++;
+    while(pending.length){const current=pending.pop();for(const k of current.adj){const next=nodes.get(k);if(next.component===undefined){next.component=node.component;pending.push(next);}}}
+  }
+  const groups=new Map();
+  for(const face of faces){const id=face.ring[0].component;if(!groups.has(id))groups.set(id,[]);groups.get(id).push(face);}
+  const area=faces.filter(face=>![...groups].some(([id,others])=>id!==face.ring[0].component&&others.some(outer=>outer.area>face.area+eps&&face.ring.every(p=>inside(p,outer.ring))))).reduce((sum,f)=>sum+f.area,0);
+  return {area:area>eps?+area.toFixed(6):null,partial:used.size<edges.size};
+}
