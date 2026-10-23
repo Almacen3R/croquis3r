@@ -76,3 +76,9 @@ Actualización del 23-10-2026: el usuario autorizó explícitamente la transfere
 ## Revisión de seguridad — 23-10-2026
 
 Se actualizó el entorno local a Python 3.13.17/OpenSSL 3.5.9/pip 26.2.2, asgiref 3.13.0 y pymssql 2.4.5. La imagen con Python 3.12.15, Gunicorn 26.2.2 y PostgreSQL 18.6 se desplegó correctamente como `897308d80fbf` mediante la autorización limitada instalada por el administrador. Aprobaron las pruebas Windows/Linux, 120 pruebas en Docker/PostgreSQL y las 11 consultas comerciales; se preservó el contenido de los registros. [Inventario, fuentes, pruebas y límites](seguridad-dependencias-2026-10-23.md). Continúan pendientes los datos técnicos de peso, mortero y acero para 10 cm, los códigos comerciales faltantes y HTTPS en la LAN.
+
+## Revisión de ventanas regulares — 23-10-2026
+
+El usuario detectó una diferencia al contar bloques en una imagen de ventana de 1,50 m. Se releyeron directamente las celdas de ambos XLSM originales: `MODULADOR !C8:E8` del manual y `Hoja2!C8:E8` del otro modulador contienen 2 m, 15 TP50 y 5 TP37; las filas 9 contienen 1,50 m, 10 TP50 y 5 TP37. Son coeficientes fijos de origen, no un cálculo por dimensiones del vano. La transcripción coincide.
+
+La receta equivale aritméticamente a cinco hiladas de 3 TP50 + 1 TP37 (2 m), o de 2 TP50 + 1 TP37 (1,50 m). No demuestra que sean las hiladas correctas de la elevación real. El diagrama de piezas del manual 2024, página 8, muestra cerramiento bajo y sobre la ventana, además del vigabloque. Falta confirmar qué zonas incluyen los coeficientes del Excel, antepecho, altura real del vano, cerramiento superior y altura final. Las pruebas de paridad con Excel no validan ese detalle constructivo. No se cambian todavía las cantidades ni los históricos sin resolver esa pauta. Las miniaturas del calculador son símbolos CSS repetidos, no despieces a escala.
