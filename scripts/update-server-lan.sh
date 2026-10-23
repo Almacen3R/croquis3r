@@ -35,6 +35,16 @@ PY
 )"
 old_image="croquis3r-app:$old_release"
 docker image inspect "$old_image" > /dev/null
+# Identidad exacta para revertir también una actualización menor de PostgreSQL.
+old_db_image="$(docker inspect --format '{{.Image}}' "$(dc ps -q db)")"
+dc exec -T db postgres --version > "$backup/postgres-before.txt"
+dc exec -T app python -VV > "$backup/python-before.txt"
+dc exec -T app python -m pip list --format=json > "$backup/packages-before.json"
+old_pg_version="$(dc exec -T db psql -U croquis3r_app -d croquis3r -Atc 'SHOW server_version_num' | tr -d '\r')"
+[[ "$old_pg_version" =~ ^18[0-9]{4}$ ]] && [ "$old_pg_version" -ge 180004 ] && [ "$old_pg_version" -le 180006 ] || { echo 'Solo se admite PostgreSQL 18.4 a 18.6; otra versión necesita revisión, sin cambios mayores ni retrocesos.' >&2; exit 1; }
+test -z "$(dc exec -T db psql -U croquis3r_app -d croquis3r -Atc "SELECT extname FROM pg_extension WHERE extname <> 'plpgsql'")" || { echo 'Hay extensiones adicionales: revisar las notas de PostgreSQL 18.6 antes de actualizar.' >&2; exit 1; }
+test "$(dc exec -T db psql -U croquis3r_app -d croquis3r -Atc 'SELECT count(*) FROM pg_replication_slots')" = 0 || { echo 'Hay replicación configurada: revisar antes de actualizar.' >&2; exit 1; }
+printf 'services:\n  db:\n    image: "%s"\n    pull_policy: never\n' "$old_db_image" > "$backup/db-rollback.yaml"
 cp -p .env.production "$backup/env.production"
 tar --exclude='./.git' --exclude='./.env*' --exclude='./secrets' --exclude='./backups' --exclude='./.deploy' -czf "$backup/source-before.tar.gz" .
 dc exec -T db pg_dump -U croquis3r_app -d croquis3r -Fc > "$backup/database.dump"
@@ -63,6 +73,7 @@ test "$bundle_commit" = "$commit" || { echo 'El commit del bundle no coincide.' 
 g fetch "$stage/croquis3r.bundle" refs/heads/main
 new_release="git-${commit:0:12}"
 switched=0
+db_switched=0
 code_updated=0
 old_commit="$(g rev-parse --verify HEAD 2>/dev/null || true)"
 on_failure() {
@@ -70,6 +81,11 @@ on_failure() {
   trap - ERR
   echo "Actualización interrumpida. Respaldo conservado en $backup" >&2
   cp -p "$backup/env.production" .env.production
+  if [ "$db_switched" = 1 ]; then
+    echo 'Recuperando la imagen anterior de PostgreSQL 18, sin restaurar datos.' >&2
+    dc stop app || true
+    docker compose --env-file .env.production -f compose.yaml -f compose.server-lan.yaml -f "$backup/db-rollback.yaml" up -d --no-deps --wait --wait-timeout 120 db || true
+  fi
   if [ "$switched" = 1 ]; then
     echo "Intentando recuperar la imagen anterior: $old_image" >&2
     dc up -d --no-deps --wait --wait-timeout 120 app || true
@@ -118,7 +134,11 @@ if private.exists():
     print('Configuración de precios cargada; valores privados omitidos.')
 PYCFG
 dc config --quiet
-dc build app
+dc build --pull app
+dc run --rm --no-deps -T app python -m config.security_inventory --verify > "$backup/runtime-new.json"
+dc pull db
+# Comprobar la imagen nueva sin montar el directorio de datos.
+docker run --rm --network none --entrypoint postgres postgres:18.6-bookworm --version | grep -F '18.6'
 dc run --rm --no-deps -T app python manage.py check
 # Verifica permisos SELECT y los SKU si se habilitó la conexión real.
 dc run --rm --no-deps -T app python manage.py shell --command "from django.conf import settings; from django.core.management import call_command; call_command('check_3r_prices') if settings.THREER_PRICING_ENABLED else print('Precios externos deshabilitados.')"
@@ -131,9 +151,14 @@ dc run --rm --no-deps -T app python manage.py test sketches catalog
 # El rollback conserva esta extensión nullable compatible con la imagen anterior.
 switched=1
 dc stop app
+db_switched=1
+dc up -d --no-deps --wait --wait-timeout 120 db
+test "$(dc exec -T db psql -U croquis3r_app -d croquis3r -Atc 'SHOW server_version_num' | tr -d '\r')" = 180006
 dc run --rm --no-deps -T app python manage.py migrate --noinput
 dc up -d --no-deps --wait --wait-timeout 120 app
 curl --fail --silent http://192.168.0.214:8013/health/
+dc exec -T app python -m config.security_inventory --verify > "$backup/runtime-after.json"
+dc exec -T db postgres --version > "$backup/postgres-after.txt"
 dc exec -T app python manage.py shell <<'PY'
 from django.test import Client
 from django.contrib.auth import get_user_model

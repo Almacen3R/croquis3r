@@ -6,7 +6,7 @@ Actualización del 21-10-2026: Croquis3R ya funciona en el servidor LAN con Post
 
 La descripción siguiente conserva las comprobaciones de preparación inicial.
 
-Entorno local Windows con Python 3.12 y SQLite. Ver los comandos del README para preparar y ejecutar. El contenedor utiliza Gunicorn y WhiteNoise; no usa el servidor de desarrollo de Django. La ejecución real de Docker y PostgreSQL debe verificarse en un equipo que tenga Docker disponible.
+Entorno local Windows con Python 3.13.17 y SQLite; producción preparada con Python 3.12.15 y PostgreSQL 18.6. Ver los comandos del README para preparar y ejecutar. El contenedor utiliza Gunicorn 26.2.2 y WhiteNoise; no usa el servidor de desarrollo de Django. Ver la [revisión de seguridad del 23-10-2026](seguridad-dependencias-2026-10-23.md) para distinguir lo probado de lo pendiente de aplicar en producción.
 
 El 19 de octubre se verificó que esta estación corre en una VM QEMU con `HypervisorPresent=true`, pero sin virtualización anidada expuesta (`VirtualizationFirmwareEnabled`, SLAT y VMMonitor en `false`), y sin WSL instalado. Se pospuso Docker Desktop porque su motor Linux requiere ese soporte desde el anfitrión. Se descargó Docker Compose 5.6.0 oficial a `.tools/` (ignorado por Git), se verificó su SHA-256 y se validaron tanto la configuración local como la combinación de producción con `config --quiet`. Esto comprueba la configuración, no la construcción ni ejecución de imágenes.
 

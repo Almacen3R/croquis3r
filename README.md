@@ -20,7 +20,7 @@ En esta versión, «unir» significa alinear extremos y presentar una cota conti
 
 ## Inicio rápido en Windows (sin Docker)
 
-Requiere Python 3.12. PowerShell, desde esta carpeta:
+Requiere Python 3.12.15 o 3.13.17 (parches verificados el 23-10-2026). PowerShell, desde esta carpeta:
 
 ```powershell
 python -m venv .venv
@@ -33,7 +33,7 @@ python -m venv .venv
 
 Abrir <http://127.0.0.1:8013/> e iniciar sesión. Toda cuenta debe ser individual; vendedores activos ven sus registros y superusuarios ven todos. Las referencias originales de TicoBlock son comunes. Ver [usuarios y privacidad](docs/usuarios-y-privacidad.md). SQLite se utiliza solo para facilitar esta prueba local; los croquis guardados quedan en `db.sqlite3`. No hace falta copiar `.env.example` para este modo. Si existe `.env`, debe tener `DB_ENGINE=sqlite`.
 
-En esta estación, Python también está disponible en `C:\Users\PCVM-Pablo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe`; puede usarse para crear `.venv` si `python` no figura en PATH. El entorno `.venv` ya fue preparado para esta entrega.
+En esta estación, `.venv` usa Python 3.13.17, preparado desde la distribución portable oficial con SHA-256 verificado en `.tools/python31317/python.exe`. No depende del intérprete compartido de Codex. La imagen de producción usa Python 3.12.15 para conservar la serie existente. Ver [revisión de seguridad y pendientes de producción](docs/seguridad-dependencias-2026-10-23.md).
 
 ## Ejecución local en Docker + PostgreSQL 18
 

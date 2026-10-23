@@ -71,4 +71,8 @@ Se verificó el archivo Homologacion de Drive y la conexión SQL de solo SELECT.
 
 Integración local en croquis, cálculo manual y plantillas, con precios/suma parcial y pendientes explícitos. Atenciones guardan una instantánea que no cambia al abrir. No se importó ni modificó la base comercial. Credenciales y reportes de valores fuera de Git. Falta aplicar al servidor el paquete de esta revisión. Mortero, varilla y varias medidas de aberturas siguen sin código; los consumos técnicos de 10 cm siguen pendientes.
 
-Activación de precios en producción: pendiente de autorización explícita para transferir/guardar la credencial SQL en el servidor de Croquis3R. La revisión automática rechazó ese envío; no se realizó. El código y el paquete se preparan sin credenciales.
+Actualización del 23-10-2026: el usuario autorizó explícitamente la transferencia y almacenamiento de la credencial el 22-10. Se transfirió por SSH a configuración privada con permisos 600, fuera de Git. El 23-10 se confirmó el contenedor sano y commit `5875b8b3f87c` en producción; la restricción anterior quedó resuelta. El inventario interno requiere sudo interactivo.
+
+## Revisión de seguridad — 23-10-2026
+
+Se actualizó el entorno local a Python 3.13.17/OpenSSL 3.5.9/pip 26.2.2, asgiref 3.13.0 y pymssql 2.4.5. Se preparó la imagen con Python 3.12.15, Gunicorn 26.2.2 y PostgreSQL 18.6. Las pruebas Windows/Linux y las 11 consultas de precios aprobaron; la actualización de seguridad en producción queda pendiente de ejecutar con sudo. [Inventario, fuentes, pruebas y límites](seguridad-dependencias-2026-10-23.md). Continúan pendientes los datos técnicos de peso, mortero y acero para 10 cm, los códigos comerciales faltantes y HTTPS en la LAN.
