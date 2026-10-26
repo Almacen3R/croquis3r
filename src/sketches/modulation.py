@@ -130,9 +130,9 @@ def calculate_modulation(document, articles):
             if not modular(opening["offset"]) or not modular(opening["width"]):
                 issue(opening, "Posición y largo del módulo deben ser múltiplos de 0,50 m; no son medidas libres del vano.")
             if opening['kind']=='door':
-                kind = {1.5:'Puerta baño',2:'Puerta estándar',3:'Puerta amplia'}.get(opening['width'])
+                kind = {.5:'Puerta',1:'Puerta',1.5:'Puerta',2:'Puerta estándar',3:'Puerta amplia'}.get(opening['width'])
                 if kind is None:
-                    issue(opening, 'Las puertas confirmadas usan módulos de 1,50 m (baño), 2 m (Estándar) o 3 m (Amplia). Revisa esta puerta sin cambiarla automáticamente.')
+                    issue(opening, 'Las puertas admiten módulos de 0,50, 1, 1,50, 2 o 3 m. Revisa esta puerta sin cambiarla automáticamente.')
                     continue
             else:
                 kind = KINDS[opening.get('panel_type','regular')]

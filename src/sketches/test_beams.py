@@ -46,4 +46,4 @@ class BeamTests(SimpleTestCase):
         self.assertTrue(form.is_valid())
         result = calculate_house(form.cleaned_data)
         self.assertEqual((result['beam'], result['beam_basis']), (4, 'paño independiente'))
-        self.assertTrue(result['version'].endswith('2026-10-22-v4'))
+        self.assertTrue(result['version'].endswith('2026-10-26-v5'))

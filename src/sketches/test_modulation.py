@@ -19,10 +19,22 @@ def opening(oid="o", kind="window", **extra):
 
 
 def doc(*objects, **settings):
-    return {"version": 1, "objects": list(objects), "ticoblock": settings}
+    return {"version": 1, "objects": list(objects), "ticoblock": {"max_span": "2", **settings}}
 
 
 class ModulationTests(SimpleTestCase):
+    def test_new_default_uses_one_point_five_without_shortening_wall_or_door(self):
+        data = {"version": 1, "objects": [wall()]}
+        result = calculate_modulation(data, {})
+        self.assertEqual([s['length'] for s in result['segments']], [1.5, 1.5, 1])
+        self.assertEqual(sum(s['length'] for s in result['segments']), 4)
+        for width in (.5, 1, 1.5, 2, 3):
+            data = doc(wall(x2=4), opening('p', 'door', offset=.5, width=width), max_span='1.5')
+            result = calculate_modulation(data, {})
+            self.assertEqual(result['status'], 'ready')
+            self.assertEqual(next(s['length'] for s in result['segments'] if s['object_id']=='p'), width)
+            self.assertTrue(all(s['length']<=1.5 for s in result['segments'] if s['kind']=='Completo'))
+
     def test_drawn_columns_replace_manual_counts_and_share_intersections(self):
         data = doc(wall(), wall("b", 4, 0, 4, 2), linear_columns=99, t_columns=99)
         data["columns"] = [{"id": f"c{i}", "x": x, "y": y, "column_type": kind}
@@ -85,12 +97,12 @@ class ModulationTests(SimpleTestCase):
         self.assertEqual((result["panels"], result["meters"], len(result["column_positions"])), (10, 14, 10))
         self.assertEqual(sum(s["kind"] == "Puerta estándar" for s in result["segments"]), 1)
 
-    def test_old_paper_door_one_meter_requires_review_without_rewriting_sketch(self):
+    def test_one_meter_door_is_now_supported_without_rewriting_sketch(self):
         data=doc(wall(),opening('p','door',offset=1,width=1))
         result=calculate_modulation(data,{})
-        self.assertEqual(result['status'],'incomplete')
+        self.assertEqual(result['status'],'ready')
         self.assertEqual(data['objects'][1]['width'],1)
-        self.assertEqual(result['issues'][0]['object_id'],'p')
+        self.assertEqual(next(s for s in result['segments'] if s['object_id']=='p')['length'],1)
 
     def test_rectangle_with_confirmed_bath_door_matches_current_manual_recipe(self):
         walls = [wall(x2=4),wall('b',4,0,4,4),wall('c',4,4,0,4),wall('d',0,4,0,0)]
@@ -104,7 +116,7 @@ class ModulationTests(SimpleTestCase):
         right=sorted((s for s in result['segments'] if s['wall_id']=='b'),key=lambda s:s['start'])
         self.assertEqual([s['length'] for s in right],[1.5,1,1.5])
 
-    def test_default_prefers_two_then_one_point_five_then_one_then_half(self):
+    def test_explicit_two_meter_preference_is_preserved(self):
         for length, expected in [(4,[2,2]),(3.5,[2,1.5]),(3,[2,1]),(2.5,[2,.5])]:
             result=calculate_modulation(doc(wall(x2=length)),{})
             self.assertEqual([s['length'] for s in result['segments']],expected)
@@ -119,7 +131,7 @@ class ModulationTests(SimpleTestCase):
     def test_non_modular_lengths_positions_and_missing_recipes_block_entire_total(self):
         cases = (doc(wall(x2=4.1)), doc(wall(), opening(offset=1.2)),
                  doc(wall(), opening(width=1.2)), doc(wall(), opening(width=2, offset=1, panel_type="bath")),
-                 doc(wall(height=2.4)), doc(wall(thickness=.15)), doc(wall(), opening(kind="door", offset=1, width=.5)))
+                 doc(wall(height=2.4)), doc(wall(thickness=.15)), doc(wall(), opening(kind="door", offset=1, width=.75)))
         for data in cases:
             with self.subTest(data=data):
                 result = calculate_modulation(data, {})

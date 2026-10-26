@@ -41,8 +41,8 @@ class HouseCalculationTests(SimpleTestCase):
         result = self.calculate(**{recipe.key: "1" for recipe in RECIPES}, height="1")
         self.assertEqual((result["tp50"], result["tp37"], result["columns"], result["beam"],
                           result["mortar"], result["wall_steel"], result["beam_steel"], result["weight"]),
-                         (168, 122, 19, 68, 15, 11, 4, 6682))
-        self.assertEqual(str(result["meters"]), "24.5")
+                         (168, 122, 21, 73, 15, 11, 4, 6898))
+        self.assertEqual(str(result["meters"]), "26.0")
 
     def test_empty_chain_has_no_phantom_column(self):
         result = self.calculate()

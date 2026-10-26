@@ -45,7 +45,6 @@
           </section>
           <section class="card"><div class="section-title"><span>02</span><h2>Cantidades de paños</h2></div>
             <p class="hint">El largo corresponde al módulo completo, no a la medida exacta del vano de una ventana o puerta. De 0 a 100 paños por clase.</p>
-            {% if legacy_doors %}<div class="error-summary"><label>{{ form.panel_19.label }}{{ form.panel_19 }}{{ form.panel_19.errors }}</label><p>Este dato se conserva para revisión. Redistribúyelo entre las puertas actuales y deja el conteo antiguo en cero; los resultados históricos guardados no se modifican.</p></div>{% endif %}
             {% for group in groups %}<fieldset class="recipe-group"><legend>{% if group.name == 'Completo' %}Pared sin puerta ni ventana{% else %}{{ group.name }}{% endif %}</legend>
               <div class="recipe-grid">{% for row in group.rows %}<label class="recipe">
                 <span class="module-symbol {% if 'Ventana' in group.name %}window{% elif 'Puerta' in group.name %}door{% endif %}" aria-hidden="true"><i></i></span>
@@ -53,7 +52,7 @@
                 {{ row.field }}{{ row.field.errors }}
               </label>{% endfor %}</div>
             </fieldset>{% endfor %}
-            <p class="hint">Bloque largo/corto: TP50/TP37 en 12 cm; TP48/TP40 en 10 cm. Puertas por módulo: baño 1,50 m, Estándar 2 m y Amplia 3 m. El vano comercial es menor que el módulo.</p><p class="hint">Ventana de baño de 2 m: sin receta en el Excel; no está habilitada.</p>
+            <p class="hint">Bloque largo/corto: TP50/TP37 en 12 cm; TP48/TP40 en 10 cm. Puertas por módulo: 0,50, 1, 1,50, Estándar 2 m y Amplia 3 m. El vano comercial es menor que el módulo.</p><p class="hint">Ventana de baño de 2 m: sin receta en el Excel; no está habilitada.</p>
           </section>
           <section class="card"><div class="section-title"><span>03</span><h2>Columnas</h2></div>
             <label>{{ form.column_mode.label }}{{ form.column_mode }}{{ form.column_mode.errors }}</label>

@@ -13,7 +13,7 @@ from django import forms
 from .attention import AttentionFields
 from .beams import pieces
 
-VERSION = "ticoblock-manual-2026-10-22-v4"
+VERSION = "ticoblock-manual-2026-10-26-v5"
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ class Recipe:
 
     @property
     def source_label(self):
-        return f"Excel · fila {self.row}" if self.row <= 20 else "Módulo confirmado 21-10-2026; vano sin bloques según modulador"
+        return f"Excel · fila {self.row}" if self.row <= 20 else "Módulo de puerta confirmado por el usuario; vano sin bloques según modulador"
 
     @property
     def key(self):
@@ -54,7 +54,9 @@ RECIPES = (
     Recipe(16, "Ventana baño", "1.5", 20, 10, "1"),
     Recipe(17, "Ventana baño", "1", 10, 10, "0.5"),
     Recipe(18, "Puerta estándar", "2", 0, 0, "0"),
-    Recipe(101, "Puerta baño", "1.5", 0, 0, "0"),
+    Recipe(101, "Puerta", "1.5", 0, 0, "0"),
+    Recipe(19, "Puerta", "1", 0, 0, "0"),
+    Recipe(103, "Puerta", "0.5", 0, 0, "0"),
     Recipe(102, "Puerta amplia", "3", 0, 0, "0"),
     Recipe(20, "Ventana baño", "0.5", 0, 10, "0"),
 )
@@ -67,8 +69,6 @@ class HouseCalculatorForm(AttentionFields):
         choices=(("12", "12 cm · TP50 / TP37 · recomendado"), ("10", "10 cm · TP48 / TP40")))
     floor_level = forms.TypedChoiceField(label="Nivel del proyecto", required=False, coerce=int, empty_value=1, initial=1,
         choices=((1, "Primera planta o tapia"), (2, "Segundo piso · requiere 12 cm y columnas")))
-    panel_19 = forms.IntegerField(label="Puertas antiguas de módulo 1 m · por revisar", required=False,
-                                  min_value=0, max_value=100, initial=0)
     height = forms.TypedChoiceField(label="Altura de referencia", coerce=int, initial=0,
         choices=((0, "2,50 m · viga de amarre incluida (12 cm)"),
                  (1, "2,70 m · una hilada de vigabloque"),
@@ -92,8 +92,6 @@ class HouseCalculatorForm(AttentionFields):
         data = super().clean()
         data['block_family'] = data.get('block_family') or '12'
         data['floor_level'] = data.get('floor_level') or 1
-        if data.get('panel_19'):
-            self.add_error('panel_19', 'El módulo antiguo de puerta de 1 m ya no corresponde a la oferta confirmada. Revisa su cantidad, pásala a Baño 1,50 m, Estándar 2 m o Amplia 3 m y deja este campo en cero.')
         if data['block_family']=='10' and data.get('height') not in (None, 0):
             self.add_error('height', 'Las paredes de 10 cm solo admiten 2,50 m; no usan vigabloques.')
         if data['floor_level']==2:

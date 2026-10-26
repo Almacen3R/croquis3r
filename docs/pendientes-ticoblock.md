@@ -1,6 +1,6 @@
 # Pendientes y estado vigente de Croquis3R
 
-Actualizado: 21 de octubre de 2026. Mantener este registro junto con las [reglas confirmadas](aclaraciones-ticoblock-2026-10-21.md), sin reemplazar los datos desconocidos por supuestos.
+Actualizado: 26 de octubre de 2026. Mantener este registro junto con las [reglas confirmadas](aclaraciones-ticoblock-2026-10-21.md) y la [actualización de paños y puertas](panos-y-puertas-2026-10-26.md), sin reemplazar los datos desconocidos por supuestos.
 
 ## Información pendiente de TicoBlock
 
@@ -12,7 +12,7 @@ Actualizado: 21 de octubre de 2026. Mantener este registro junto con las [reglas
 | Perling, chorreado, anclajes y refuerzos en uniones de 10 cm | Pendiente | Fuera del desglose actual. Cero vigabloques no significa cero refuerzo. |
 | Reglas de entrepiso, cimentación y dimensionamiento para segundo piso | Pendiente | Solo se controla la compatibilidad: 12 cm con columnas. |
 
-Las cantidades de bloques por paño de 10 cm **ya se confirmaron iguales** a las de 12 cm; esa tabla no es un pendiente. Las puertas por módulo también están confirmadas: baño 1,50 m, Estándar 2 m, Amplia 3 m.
+Las cantidades de bloques por paño de 10 cm **ya se confirmaron iguales** a las de 12 cm; esa tabla no es un pendiente. Desde el 26-10-2026 se admiten puertas por módulo de 0,50, 1, 1,50 y 2 m; se conserva la Amplia de 3 m previamente confirmada. La medida de 1,50 m no se etiqueta automáticamente como baño. El croquis nuevo propone paños de 1,50 m o menos, con preferencia ajustable.
 
 ## Estado técnico comprobado
 

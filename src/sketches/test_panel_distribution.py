@@ -66,16 +66,15 @@ class ConfirmedRulesTests(SimpleTestCase):
         self.assertEqual(calculate_modulation(doc(wall(x2=2),floor_level=2),{})['status'],'incomplete')
         self.assertEqual(calculate_modulation(doc(wall(x2=2),floor_level=2,linear_columns=2),{})['status'],'ready')
 
-    def test_current_doors_are_bath_standard_and_wide_not_one_meter(self):
-        for width,name in ((1.5,'Puerta baño'),(2,'Puerta estándar'),(3,'Puerta amplia')):
+    def test_current_doors_include_half_and_one_meter(self):
+        for width,name in ((.5,'Puerta'),(1,'Puerta'),(1.5,'Puerta'),(2,'Puerta estándar'),(3,'Puerta amplia')):
             result=calculate_modulation(doc(wall(x2=width),opening(kind='door',offset=0,width=width)),{})
             self.assertEqual(result['status'],'ready')
             self.assertEqual(result['segments'][0]['kind'],name)
             self.assertEqual(result['items'][0]['quantity'],0)
             self.assertEqual(result['meters'],width)
         legacy=HouseCalculatorForm(entries(panel_19='1'))
-        self.assertFalse(legacy.is_valid())
-        self.assertIn('panel_19',legacy.errors)
+        self.assertTrue(legacy.is_valid(),legacy.errors)
 
     def test_all_preferences_apply_to_sketches_and_ten_cm_material_names(self):
         for span,parts in (('2',[2,1.5]),('1.5',[1.5,1.5,.5]),('1',[1,1,1,.5]),('0.5',[.5]*7)):
@@ -121,8 +120,8 @@ class DistributionApiTests(TestCase):
             rule_version='ticoblock-manual-2026-10-20-v2')
         original=record.result.copy()
         response=self.client.get(f'/calculador-casas/?attention={record.pk}')
-        self.assertEqual(response.status_code,400)
-        self.assertContains(response,'módulo antiguo de puerta',status_code=400)
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,'Puerta')
         record.refresh_from_db()
         self.assertEqual(record.result,original)
 

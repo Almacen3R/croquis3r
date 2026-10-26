@@ -99,7 +99,6 @@ def house_calculator(request):
             {"recipe": recipe, "field": form[recipe.key]} for recipe in RECIPES if recipe.kind == kind]})
     return render(request, "sketches/house_calculator.html",
                   {"form": form, "groups": groups, "result": result, "version": VERSION,
-                   "legacy_doors": form["panel_19"].value() not in (None, "", 0, "0"),
                    "record": record, "unsaved": request.method == "POST"},
                   status=400 if form.is_bound and form.errors else 200)
 

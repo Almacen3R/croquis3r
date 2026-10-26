@@ -148,7 +148,7 @@ def validate_document(document, articles):
 def validate_ticoblock_settings(settings):
     if not isinstance(settings, dict):
         raise InvalidDocument("Configuración TicoBlock inválida.")
-    span = str(settings.get("max_span", "2"))
+    span = str(settings.get("max_span", "1.5"))
     if span not in ("0.5", "1", "1.5", "2"):
         raise InvalidDocument("El largo preferido debe ser 2, 1,50, 1 o 0,50 m.")
     level = settings.get('floor_level', 1)
@@ -211,6 +211,6 @@ def calculate(document, articles):
 def validate_door_catalog(document):
     """Validate before saving; legacy documents remain readable without rewriting them."""
     for obj in document["objects"]:
-        if obj["kind"] == "door" and number(obj["width"], "Módulo de puerta") not in {Decimal("1.5"), Decimal("2"), Decimal("3")}:
-            raise InvalidDocument(f'{obj.get("label", "Puerta")}: módulo fuera de catálogo. Elija Baño (1,50 m), Estándar (2 m) o Amplia (3 m). No se guardaron los cambios.')
+        if obj["kind"] == "door" and number(obj["width"], "Módulo de puerta") not in {Decimal("0.5"), Decimal("1"), Decimal("1.5"), Decimal("2"), Decimal("3")}:
+            raise InvalidDocument(f'{obj.get("label", "Puerta")}: módulo fuera de catálogo. Elija 0,50, 1, 1,50, 2 o 3 m. No se guardaron los cambios.')
     return document

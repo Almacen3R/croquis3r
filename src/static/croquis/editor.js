@@ -14,7 +14,7 @@ const allObjects = () => [...state.document.objects,...(state.document.columns||
 const selected = () => allObjects().find(o => o.id === state.selected);
 const fmt = value => Number(value).toLocaleString('es-CR', {maximumFractionDigits: 2, minimumFractionDigits: 2});
 const typeName = kind => ({wall: 'Pared', door: 'Puerta', window: 'Ventana', column:'Columna'}[kind]);
-const objectName = obj => obj.kind==='door' ? `${doorName(obj.width)} · ${fmt(obj.width)} m` : obj.label || typeName(obj.kind);
+const objectName = obj => obj.kind==='door' ? ([2,3].includes(obj.width) ? `${doorName(obj.width)} · ${fmt(obj.width)} m` : doorName(obj.width)) : obj.label || typeName(obj.kind);
 const basisName = basis => ({area: 'm² netos', length: 'm lineales', object: 'objeto'}[basis]);
 
 function element(tag, attrs = {}, content = null) {
@@ -62,7 +62,7 @@ function setTool(tool) {
     wall: 'Haz clic en el inicio y luego en el final de la pared. Esc cancela el trazo.',
     column_C: 'Haz clic sobre una pared o marca propuesta para colocar una columna C lineal. Esc termina.',
     column_E: 'Haz clic sobre una esquina o cruce para colocar una columna E. Esc termina.',
-    door: `${doorName(Number($('door-size').value))}: haz clic sobre una pared con espacio para el módulo de ${fmt($('door-size').value)} m.`, window: 'Haz clic en el tramo de pared que ocupará la ventana (hasta 2 m). Después puedes ajustar sus extremos.'})[tool];
+    door: 'Haz clic sobre una pared para colocar una puerta. Arrastra sus extremos para ajustar el largo en pasos de 0,50 m.', window: 'Haz clic en el tramo de pared que ocupará la ventana (hasta 2 m). Después puedes ajustar sus extremos.'})[tool];
   render();
 }
 function rawPoint(event) {
@@ -78,10 +78,9 @@ function wallDefaults() {
 }
 function addOpening(wall, kind, position) {
   let height = kind === 'door' ? 2.1 : 1.2;
-  const placement = placeOpening(wall, position, state.document.objects,kind,kind==='door'?Number($('door-size').value):null);
-  if (!placement) throw new Error(kind==='door'?`No hay espacio para ${doorName(Number($('door-size').value))} de ${fmt($('door-size').value)} m. Elige otro tipo o una pared con más espacio libre.`:'No hay espacio libre para colocar la ventana.');
+  const placement = placeOpening(wall, position, state.document.objects,kind);
+  if (!placement) throw new Error(kind==='door'?'No hay al menos 0,50 m libres para colocar la puerta en esta pared.':'No hay espacio libre para colocar la ventana.');
   const {offset,width} = placement;
-  if(kind==='door' && width===1.5)height=1.9;
   if (wall.height < (kind === 'door' ? height : height + 1)) throw new Error('La pared no tiene altura suficiente para esta abertura.');
   const opening = {id: uid(), kind, label: `${kind==='door'?doorName(width):typeName(kind)} ${state.document.objects.filter(o => o.kind === kind).length + 1}`,
     wall_id: wall.id, offset, width, height, sill: kind === 'door' ? 0 : 1,
@@ -160,7 +159,7 @@ function render() {
   $('house-thickness').value=thicknesses.length===0?(settings.block_family==='10'?'0.1':'0.12'):thicknesses.length===1?String(thicknesses[0]):'';
   $('floor-level').value=String(settings.floor_level||1);
   setFamilyControls();
-  $('max-span').value = settings.max_span || '2';
+  $('max-span').value = settings.max_span || '1.5';
   $('linear-columns').value = drawn?state.document.columns.filter(c=>c.column_type==='C').length:settings.linear_columns || 0;
   $('t-columns').value = drawn?state.document.columns.filter(c=>c.column_type==='E').length:settings.t_columns || 0;
   }
@@ -218,20 +217,15 @@ function renderInspector() {
     field(grid, 'thickness', 'Espesor · m', obj.thickness, {type: 'number', step: '.01', min: .05, max: 1});
     const info = element('p', {class:'fine-print'}, `Longitud: ${fmt(length(obj))} m. Para unir paredes, usa coordenadas de extremos iguales.`); fields.append(info);
   } else {
-    for (const [key, label, min] of [['offset','Inicio del módulo · m',0],['width','Largo del módulo · m',.5],['height','Altura visual · m',.1],['sill','Desde piso · m',0]].filter(([key])=>obj.kind!=='door'||key!=='width')) field(grid, key, label, obj[key], {type: 'number', step: ['offset','width'].includes(key) ? '.5' : '.01', min, max: key === 'offset' ? 200 : 20, ...(obj.kind === 'door' && key === 'sill' ? {readonly:''} : {})});
+    for (const [key, label, min] of [['offset','Inicio del módulo · m',0],['width','Largo del módulo · m',.5],['height','Altura visual · m',.1],['sill','Desde piso · m',0]]) field(grid, key, label, obj[key], {type: 'number', step: ['offset','width'].includes(key) ? '.5' : '.01', min, max: key === 'offset' ? 200 : 20, ...(obj.kind === 'door' && key === 'sill' ? {readonly:''} : {})});
     if(obj.kind==='door') {
-      const label=element('label',{},'Tipo de puerta · módulo'), select=element('select',{name:'width',required:'','aria-label':'Tipo de puerta · módulo'});
-      if(![1.5,2,3].includes(obj.width))select.append(element('option',{value:'',disabled:'',selected:''},'Medida anterior no válida · elige un tipo'));
-      for(const width of [2,1.5,3])select.append(element('option',{value:width},`${doorName(width)} · ${fmt(width)} m`));
-      select.value=[1.5,2,3].includes(obj.width)?String(obj.width):'';
-      label.append(select);fields.append(label);
       const controls=element('div',{class:'button-pair spaced-small'});
       for(const [label,change] of [['↻ Rotar apertura',rotation=>(rotation+1)%4],['↔ Invertir apertura',rotation=>rotation^2]]) {
         const button=element('button',{type:'button'},label);
         button.onclick=()=>mutate(()=>{obj.door_rotation=change(obj.door_rotation||0);});
         controls.append(button);
       }
-      fields.append(element('p',{class:'fine-print'},'Puertas por módulo: Baño 1,50 m · Estándar 2 m · Amplia 3 m. El ancho comercial es menor que el módulo.'),controls,element('p',{class:'fine-print'},'Rotar apertura recorre las cuatro posiciones de bisagra y apertura. Invertir apertura cambia el lado hacia el que abre. Esto no cambia los materiales.'));
+      fields.append(element('p',{class:'fine-print'},'Ajusta el módulo de puerta a 0,50, 1, 1,50 o 2 m arrastrando los extremos o escribiendo su largo. Se conserva también la Amplia de 3 m.'),controls,element('p',{class:'fine-print'},'Rotar apertura recorre las cuatro posiciones de bisagra y apertura. Invertir apertura cambia el lado hacia el que abre. Esto no cambia los materiales.'));
     }
     if (obj.kind === 'window') {
       const label=element('label',{},'Receta de ventana'), select=element('select',{name:'panel_type'});
@@ -499,7 +493,7 @@ document.querySelectorAll('[data-tool]').forEach(button => button.onclick=action
 $('properties').onsubmit=action(async event=>{
   event.preventDefault();const obj=selected(),replacement=clone(obj),data=new FormData(event.target);
   for (const [key,value] of data) replacement[key]=['label','panel_type','column_type'].includes(key)?value:Number(value);
-  if(obj.kind==='door' && ![1.5,2,3].includes(replacement.width))throw new Error('Elige Baño (1,50 m), Estándar (2 m) o Amplia (3 m).');
+  if(obj.kind==='door' && ![.5,1,1.5,2,3].includes(replacement.width))throw new Error('Usa un módulo de puerta de 0,50, 1, 1,50, 2 o 3 m.');
   if(obj.kind==='column' && replacement.label===obj.label && /^Columna [CE] \d+$/.test(obj.label))replacement.label=obj.label.replace(/Columna [CE]/,`Columna ${replacement.column_type}`);
   const candidate=snapshot();if(obj.kind==='column')candidate.columns=candidate.columns.map(o=>o.id===obj.id?replacement:o);
   else candidate.objects=candidate.objects.map(o=>o.id===obj.id?replacement:o);
@@ -533,7 +527,6 @@ $('open').onclick=action(async()=>{const id=$('saved-list').value;if(!id)throw n
 $('new').onclick=()=>{if(discardAllowed())replaceDocument({version:1,objects:[]},'Nuevo croquis');};
 $('example').onclick=()=>{if(discardAllowed())example();};
 $('project-name').oninput=markDirty;
-$('door-size').onchange=()=>{if(state.tool==='door')setTool('door');};
 $('tab-object').onclick=()=>tab('object');$('tab-materials').onclick=()=>tab('materials');
 $('recalculate').onclick=()=>estimate();$('dimensions').onchange=render;
 $('show-panels').onchange=renderModulation;
@@ -553,7 +546,9 @@ function markSettingsPending(){
 }
 $('modulation-settings').addEventListener('input',event=>{if(event.target.id!=='max-span')markSettingsPending();});
 $('modulation-settings').addEventListener('change',event=>{
-  if(event.target.id!=='max-span'){if(event.target.id==='house-thickness' && $('house-thickness').value==='0.1')$('house-height').value='2.5';setFamilyControls();markSettingsPending();return;}
+  if(event.target.id==='house-thickness' && $('house-thickness').value==='0.1')$('house-height').value='2.5';setFamilyControls();markSettingsPending();
+});
+$('max-span').addEventListener('change',()=>{
   const maximum=$('max-span').value;
   mutate(()=>{state.document.ticoblock={...(state.document.ticoblock||{}),max_span:maximum};});
   message(settingsDirty?'Máximo actualizado. Aplica también los cambios pendientes de altura o columnas.':'Máximo de paño actualizado. Los materiales se actualizan automáticamente.');

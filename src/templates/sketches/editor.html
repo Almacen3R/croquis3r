@@ -29,8 +29,9 @@
       <div class="button-pair minor"><button id="new">＋ Nuevo</button><button id="example">Ver ejemplo</button></div>
 
       <div class="section-heading spaced">DIBUJAR <span>02</span></div>
-      <label class="field-label" for="door-size">Puerta que vas a colocar · módulo</label>
-      <select id="door-size"><option value="2">Estándar · 2 m</option><option value="1.5">Baño · 1,50 m</option><option value="3">Amplia · 3 m</option></select>
+      <label class="field-label" for="max-span">Largo sugerido de paños de pared</label>
+      <select id="max-span"><option value="1.5">1,50 m · preferido por 3R</option><option value="2">2 m</option><option value="1">1 m</option><option value="0.5">0,50 m</option></select>
+      <p class="fine-print">Divide las paredes en paños de esta medida o menores, conservando el largo total. No cambia puertas ni ventanas.</p>
       <div class="tools" role="group" aria-label="Herramientas de dibujo">
         <button class="tool active" data-tool="select"><span class="tool-icon">↖</span><span>Seleccionar<small>Mover y editar objetos</small></span><kbd>V</kbd></button>
         <button class="tool" data-tool="wall"><span class="tool-icon">▰</span><span>Pared<small>Marca inicio y final</small></span><kbd>P</kbd></button>
@@ -98,8 +99,7 @@
           <label class="field-label" for="house-thickness">Familia de bloques para todas las paredes</label><select id="house-thickness" required><option value="" disabled>Elige el espesor de las fichas cargadas</option><option value="0.12">12 cm · TP50/TP37 · recomendado</option><option value="0.1">10 cm · TP48/TP40 · solo 2,50 m</option></select>
           <label class="field-label" for="floor-level">Nivel del proyecto</label><select id="floor-level"><option value="1">Primera planta o tapia</option><option value="2">Segundo piso · 12 cm con columnas</option></select>
           <p class="fine-print">10 cm: solo 2,50 m, sin vigas de bloques; perling o chorreado se cotizan por separado. Segundo piso: 12 cm con columnas; no dimensiona entrepiso ni cimentación.</p>
-          <label class="field-label" for="max-span">Largo preferido por paño</label><select id="max-span"><option value="2">2 m · recomendado</option><option value="1.5">1,50 m · preferencia del cliente</option><option value="1">1 m · preferencia del cliente</option><option value="0.5">0,50 m · preferencia del cliente</option></select>
-          <p class="fine-print">Primero se usa la medida elegida y luego medidas menores para completar el tramo. Por defecto: 2 → 1,50 → 1 → 0,50 m. Cambiar el máximo recalcula automáticamente; altura y columnas se aplican con el botón.</p>
+          <p class="fine-print">Primero se usa la medida elegida y luego medidas menores para completar el tramo. Para proyectos nuevos: 1,50 → 1 → 0,50 m. Puedes elegir 2 m en el selector junto a las herramientas de dibujo. Cambiar el máximo recalcula automáticamente; altura y columnas se aplican con el botón.</p>
           <label class="field-label">Columnas del proyecto · cantidades confirmadas</label>
           <p class="fine-print" id="column-count-source">C: rectas. E: esquinas e intersecciones en cruz.</p>
           <div class="field-grid"><label>C · lineal<input id="linear-columns" type="number" min="0" max="10000" step="1" required value="0"></label><label>E · esquina/cruz<input id="t-columns" type="number" min="0" max="10000" step="1" required value="0"></label></div>

@@ -1,5 +1,7 @@
 # Aclaraciones de TicoBlock — 21 de octubre de 2026
 
+Actualización posterior: las restricciones de puertas y la preferencia inicial del croquis cambiaron el [26-10-2026](panos-y-puertas-2026-10-26.md). Esa indicación más reciente prevalece sobre los apartados históricos de este documento.
+
 Fuente: explicaciones del usuario tras su reunión con los compañeros de TicoBlock y respuestas de seguimiento en este chat. Estas aclaraciones complementan y corrigen las incertidumbres del informe del 20 de octubre. No se modificaron los archivos originales de TicoBlock ni los registros guardados.
 
 ## Reglas confirmadas

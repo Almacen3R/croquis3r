@@ -137,20 +137,20 @@ class ApiTests(TestCase):
         self.assertEqual(loaded["document"],data["document"])
 
     def test_only_catalog_door_modules_can_be_saved(self):
-        for width in (1.5, 2, 3):
+        for width in (.5, 1, 1.5, 2, 3):
             data = {**self.data, "document": document(wall(), door(width=width, offset=0))}
             response = self.post("/api/sketches/", data)
             self.assertEqual(response.status_code, 201, response.content)
             self.assertEqual(response.json()["document"], data["document"])
-        for width in (.5, 1, .9, 2.5):
+        for width in (.9, 2.5):
             data = {**self.data, "document": document(wall(), door(width=width, offset=0))}
             response = self.post("/api/sketches/", data)
             self.assertEqual(response.status_code, 400)
             self.assertIn("fuera de catálogo", response.json()["error"])
-        self.assertEqual(Sketch.objects.count(), 3)
+        self.assertEqual(Sketch.objects.count(), 5)
 
     def test_legacy_invalid_door_remains_readable_and_requires_explicit_correction(self):
-        legacy = document(wall(), door(width=.5))
+        legacy = document(wall(), door(width=.9))
         sketch = Sketch.objects.create(name="Anterior", document=legacy)
         url = f"/api/sketches/{sketch.pk}/"
         self.assertEqual(self.client.get(url).json()["document"], legacy)

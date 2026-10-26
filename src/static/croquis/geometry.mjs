@@ -156,7 +156,7 @@ export function editOpening(opening, wall, endpoint, distance, siblings=[], snap
   if(width<.5-1e-6 || start<low-1e-6 || start+width>high+1e-6) return null;
   if(opening.kind==='door' && endpoint){
     const available=endpoint===1?opening.offset+opening.width-low:high-opening.offset;
-    const valid=[1.5,2,3].filter(size=>size<=available+1e-6).sort((a,b)=>Math.abs(a-width)-Math.abs(b-width));
+    const valid=[.5,1,1.5,2,3].filter(size=>size<=available+1e-6).sort((a,b)=>Math.abs(a-width)-Math.abs(b-width));
     if(!valid.length)return null;
     return {...opening,offset:rounded(endpoint===1?opening.offset+opening.width-valid[0]:opening.offset),width:valid[0]};
   }
@@ -172,8 +172,8 @@ export function placeOpening(wall, position, siblings=[], kind='window', request
     else if(other.offset>=at-1e-6)high=Math.min(high,other.offset);
   }
   const available=Math.floor((high-low+1e-6)/GRID_STEP)*GRID_STEP;
-  const width=kind==='door'?(requestedWidth ?? (available===3?3:available>=2?2:available>=1.5?1.5:0)):Math.min(2,available);
-  if(kind==='door' && (![1.5,2,3].includes(width) || width>available+1e-6))return null;
+  const width=kind==='door'?(requestedWidth ?? (available>=2?2:available>=1.5?1.5:available>=1?1:available>=.5?.5:0)):Math.min(2,available);
+  if(kind==='door' && (![.5,1,1.5,2,3].includes(width) || width>available+1e-6))return null;
   if(width<.5)return null;
   const offset=Math.max(low,Math.min(high-width,Math.round((at-width/2)/GRID_STEP)*GRID_STEP));
   return {offset:rounded(offset),width:rounded(width)};
@@ -227,7 +227,7 @@ export function duplicateObjects(objects, object) {
 
 // El tipo se deriva del módulo para evitar metadatos contradictorios.
 export function doorName(width) {
-  return ({1.5:'Puerta de baño',2:'Puerta Estándar',3:'Puerta Amplia'})[width] || 'Puerta fuera de catálogo · corregir';
+  return ({0.5:'Puerta de 0,50 m',1:'Puerta de 1 m',1.5:'Puerta de 1,50 m',2:'Puerta Estándar',3:'Puerta Amplia'})[width] || 'Puerta fuera de catálogo · corregir';
 }
 
 
