@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-cookie-name" content="{{ csrf_cookie_name }}">
   <title>Croquis3R · Editor de croquis</title>
   <link rel="stylesheet" href="{% static 'croquis/editor.css' %}?v={{ editor_asset_version }}">
   <script type="module" src="{% static 'croquis/editor.js' %}?v={{ editor_asset_version }}"></script>
@@ -24,6 +25,7 @@
       <input id="project-name" maxlength="160" value="Nuevo croquis" autocomplete="off">
       <div id="save-status" class="save-status">Sin guardar</div>
       <div class="button-pair"><button id="save" class="primary">Guardar croquis</button><button id="save-copy" title="Guardar como un croquis nuevo" aria-label="Guardar copia">⧉</button></div>
+      <div id="save-feedback" class="save-feedback" role="status" aria-live="polite" hidden></div>
       <div class="button-pair minor"><button id="new">＋ Nuevo</button><button id="example">Ver ejemplo</button></div>
 
       <div class="section-heading spaced">DIBUJAR <span>02</span></div>

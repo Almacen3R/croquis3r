@@ -6,6 +6,7 @@ services:
     environment:
       DJANGO_DEBUG: "0"
       DJANGO_COOKIE_SECURE: "0"
+      DJANGO_LAN_HTTP: "1"
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina la clave de producción}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?Defina los hosts LAN}
     ports: !override

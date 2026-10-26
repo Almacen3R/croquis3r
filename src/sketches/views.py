@@ -35,7 +35,8 @@ def api(view):
     @wraps(view)
     def wrapped(request, *args, **kwargs):
         if not authorized(request):
-            return JsonResponse({"error": "Inicie sesión con una cuenta del equipo."}, status=403)
+            return JsonResponse({"error": "Inicie sesión con una cuenta del equipo.",
+                "code": "authentication_required"}, status=403)
         try:
             return view(request, *args, **kwargs)
         except (InvalidDocument, json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -70,8 +71,9 @@ def editor(request):
     if not authorized(request):
         return redirect_to_login(request.get_full_path())
     assets = settings.BASE_DIR / "src/static/croquis"
-    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs"))
-    return render(request, "sketches/editor.html", {"editor_asset_version": str(version)})
+    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs", "http.mjs"))
+    return render(request, "sketches/editor.html", {"editor_asset_version": str(version),
+        "csrf_cookie_name": settings.CSRF_COOKIE_NAME})
 
 
 @require_http_methods(["GET", "POST"])

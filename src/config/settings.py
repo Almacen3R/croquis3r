@@ -18,7 +18,7 @@ INSTALLED_APPS = [
     "catalog", "sketches",
 ]
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware", "whitenoise.middleware.WhiteNoiseMiddleware",
+    "config.middleware.LanAwareSecurityMiddleware", "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware", "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware", "django.contrib.auth.middleware.AuthenticationMiddleware",
     "sketches.middleware.PrivateResponseMiddleware",
@@ -60,6 +60,10 @@ LOGIN_URL = "/ingresar/"
 LOGIN_REDIRECT_URL = "/atenciones/"
 LOGOUT_REDIRECT_URL = "/ingresar/"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 1_048_576
+LAN_HTTP_MODE = os.getenv("DJANGO_LAN_HTTP", "0") == "1"
+# Cookies compartidas por host, incluso entre puertos: aislar otras apps Django.
+SESSION_COOKIE_NAME = "croquis3r_sessionid"
+CSRF_COOKIE_NAME = "croquis3r_csrftoken"
 if not DEBUG:
     # Un piloto HTTP en LAN puede desactivarlo explícitamente, manteniendo DEBUG=0.
     # Para publicar por HTTPS debe conservarse el valor predeterminado seguro.

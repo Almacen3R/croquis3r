@@ -1,3 +1,4 @@
+from django.conf import settings
 from .testing import AuthenticatedTestCase as TestCase
 from django.test import Client, SimpleTestCase, override_settings
 
@@ -106,5 +107,5 @@ class HouseCalculatorViewTests(TestCase):
         self.assertEqual(client.post("/calculador-casas/", entries()).status_code, 403)
         client.get("/calculador-casas/")
         response = client.post("/calculador-casas/", entries(),
-                               HTTP_X_CSRFTOKEN=client.cookies["csrftoken"].value)
+                               HTTP_X_CSRFTOKEN=client.cookies[settings.CSRF_COOKIE_NAME].value)
         self.assertEqual(response.status_code, 200)

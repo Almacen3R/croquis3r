@@ -1,3 +1,4 @@
+from django.conf import settings
 import json
 
 from django.contrib.auth import get_user_model
@@ -181,7 +182,7 @@ class ApiTests(TestCase):
         client.force_login(self.user)
         self.assertEqual(client.post("/api/sketches/", json.dumps(self.data), content_type="application/json").status_code, 403)
         self.assertEqual(client.get("/").status_code, 200)
-        token = client.cookies["csrftoken"].value
+        token = client.cookies[settings.CSRF_COOKIE_NAME].value
         self.assertEqual(client.post("/api/sketches/", json.dumps(self.data), content_type="application/json", HTTP_X_CSRFTOKEN=token).status_code, 201)
 
     @override_settings(DEBUG=False, SECURE_SSL_REDIRECT=False)

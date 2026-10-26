@@ -1,4 +1,5 @@
 const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
+const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta.url).search}`);
 
 const $ = id => document.getElementById(id);
 const svg = $('canvas');
@@ -35,11 +36,9 @@ function message(text, error = false) {
   $('message').classList.toggle('error', error);
 }
 async function api(path, options = {}) {
-  const csrf = document.cookie.split('; ').find(c => c.startsWith('csrftoken='))?.split('=')[1];
-  const response = await fetch(path, {...options, headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf || '', ...options.headers}});
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || `No se pudo completar la solicitud (${response.status}).`);
-  return body;
+  const cookieName = document.querySelector('meta[name="csrf-cookie-name"]').content;
+  const csrf = cookieValue(document.cookie, cookieName);
+  return requestJson(path, {...options, headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf, ...options.headers}});
 }
 function action(fn) { return async event => { try { await fn(event); } catch (error) { message(error.message, true); } }; }
 function snapshot() { return clone(state.document); }
@@ -355,20 +354,40 @@ async function refreshLibrary() {
   for (const t of state.templates) $('object-templates').append(element('option', {value:t.id}, t.name));
   $('object-templates').value = current;
 }
+let saving = false;
 async function save(copy = false, isTemplate = false, overrideName = null) {
-  if(settingsDirty){tab('materials');document.querySelector('.modulation-config').open=true;throw new Error('Aplica la configuración pendiente antes de guardar el croquis.');}
-  const name = (overrideName || $('project-name').value).trim();
-  if (!name) throw new Error('Dale un nombre al croquis antes de guardarlo.');
-  const update = state.id && !copy && !isTemplate;
-  const body = {name, document:state.document, is_template:isTemplate, revision:state.revision};
-  const original = JSON.stringify(state.document), originalName = $('project-name').value;
-  const result = await api(update ? `/api/sketches/${state.id}/` : '/api/sketches/', {method:update?'PUT':'POST', body:JSON.stringify(body)});
-  if (!isTemplate) {
-    state.id = result.id; state.revision = result.revision; state.isTemplate = false;
-    state.dirty = original !== JSON.stringify(state.document) || originalName !== $('project-name').value;
-    $('save-status').textContent = state.dirty ? 'Cambios sin guardar' : `Guardado · revisión ${result.revision}`;
+  if (saving) return;
+  saving = true;
+  const feedback = $('save-feedback');
+  const buttons = ['save','save-copy','save-template'].map($);
+  buttons.forEach(button => {button.disabled = true;});
+  feedback.hidden = false; feedback.classList.remove('error'); feedback.setAttribute('role','status');
+  feedback.textContent = 'Guardando en el servidor…';
+  try {
+    if(settingsDirty){tab('materials');document.querySelector('.modulation-config').open=true;throw new Error('Aplica la configuración pendiente antes de guardar el croquis.');}
+    const name = (overrideName || $('project-name').value).trim();
+    if (!name) throw new Error('Dale un nombre al croquis antes de guardarlo.');
+    const update = state.id && !copy && !isTemplate;
+    const body = {name, document:state.document, is_template:isTemplate, revision:state.revision};
+    const original = JSON.stringify(state.document), originalName = $('project-name').value;
+    const result = await api(update ? `/api/sketches/${state.id}/` : '/api/sketches/', {method:update?'PUT':'POST', body:JSON.stringify(body)});
+    if (!isTemplate) {
+      state.id = result.id; state.revision = result.revision; state.isTemplate = false;
+      state.dirty = original !== JSON.stringify(state.document) || originalName !== $('project-name').value;
+      $('save-status').textContent = state.dirty ? 'Cambios sin guardar' : `Guardado · revisión ${result.revision}`;
+    }
+    const savedMessage = isTemplate ? 'Plantilla guardada. Disponible en Atenciones → Croquis y plantillas dibujadas.' : 'Croquis guardado en el servidor. Disponible en Atenciones → Croquis y plantillas dibujadas.';
+    feedback.textContent = savedMessage;
+    message(savedMessage);
+    try { await refreshLibrary(); }
+    catch { feedback.textContent = `${savedMessage} No se pudo actualizar la biblioteca; puedes abrirlo desde Atenciones.`; }
+  } catch (error) {
+    feedback.classList.add('error'); feedback.setAttribute('role','alert');
+    feedback.textContent = `No se pudo guardar. ${error.message}`;
+    throw error;
+  } finally {
+    saving = false; buttons.forEach(button => {button.disabled = false;});
   }
-  await refreshLibrary(); message(isTemplate ? 'Plantilla de croquis guardada. Al abrirla se creará una copia nueva.' : 'Croquis guardado en la base de datos local.');
 }
 async function requestName(title, suggestion) {
   const dialog = $('name-dialog'); $('dialog-title').textContent = title; $('dialog-name').value = suggestion; dialog.returnValue = '';

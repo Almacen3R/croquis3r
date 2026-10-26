@@ -1,3 +1,4 @@
+from django.conf import settings
 import json
 
 from django.contrib.auth import get_user_model
@@ -113,7 +114,7 @@ class UserPrivacyTests(TestCase):
         response=csrf_client.get('/')
         self.assertIn('no-store',response['Cache-Control'])
         self.assertContains(response,'Cerrar sesión')
-        token=csrf_client.cookies['csrftoken'].value
+        token=csrf_client.cookies[settings.CSRF_COOKIE_NAME].value
         self.assertEqual(csrf_client.post('/salir/',HTTP_X_CSRFTOKEN=token).status_code,302)
         self.assertEqual(csrf_client.get('/api/sketches/').status_code,403)
         self.assertRedirects(csrf_client.get('/'),'/ingresar/?next=/',fetch_redirect_response=False)

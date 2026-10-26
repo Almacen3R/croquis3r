@@ -162,8 +162,17 @@ dc exec -T db postgres --version > "$backup/postgres-after.txt"
 dc exec -T app python manage.py shell <<'PY'
 from django.test import Client
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.db import transaction
+from sketches.models import Sketch
+import json
 c=Client(HTTP_HOST='192.168.0.214:8013')
 assert c.get('/').status_code==302
+assert settings.LAN_HTTP_MODE
+assert 'Cross-Origin-Opener-Policy' not in c.get('/ingresar/')
+assert c.get('/ingresar/',secure=True)['Cross-Origin-Opener-Policy']=='same-origin'
+assert settings.SESSION_COOKIE_NAME=='croquis3r_sessionid'
+assert settings.CSRF_COOKIE_NAME=='croquis3r_csrftoken'
 user=get_user_model().objects.filter(is_superuser=True,is_active=True).first()
 assert user is not None, 'Falta una cuenta del equipo.'
 c.force_login(user)
@@ -172,10 +181,33 @@ for url in ('/','/calculador-casas/','/atenciones/','/api/sketches/'):
 response=c.post('/api/suggest-panels/',data='{"meters":"7.5"}',content_type='application/json')
 assert response.status_code==200
 assert response.json()['panels']==4
+# Escritura real por la API y CSRF, revertida dentro de una transacción.
+# No deja croquis de prueba ni modifica los registros comerciales existentes.
+with transaction.atomic():
+    writer=Client(enforce_csrf_checks=True,HTTP_HOST='192.168.0.214:8013')
+    writer.force_login(user)
+    writer.cookies['sessionid']='otra-aplicacion'
+    writer.cookies['csrftoken']='otra-aplicacion'
+    assert writer.get('/').status_code==200
+    token=writer.cookies[settings.CSRF_COOKIE_NAME].value
+    doc={'version':1,'objects':[{'id':'test-wall','kind':'wall','label':'Prueba transaccional',
+         'x1':0,'y1':0,'x2':2,'y2':0,'height':2.5,'thickness':.12,'assignments':[]}]}
+    body={'name':'Prueba transaccional de despliegue','document':doc}
+    kwargs={'content_type':'application/json','HTTP_X_CSRFTOKEN':token}
+    result=writer.post('/api/sketches/',json.dumps(body),**kwargs)
+    assert result.status_code==201,result.status_code
+    pk=result.json()['id']
+    assert writer.get(f'/api/sketches/{pk}/').json()['document']==doc
+    assert f'?sketch={pk}' in writer.get('/atenciones/').content.decode()
+    result=writer.put(f'/api/sketches/{pk}/',json.dumps({**body,'revision':1}),**kwargs)
+    assert result.status_code==200 and result.json()['revision']==2
+    assert writer.put(f'/api/sketches/{pk}/',json.dumps(body),content_type='application/json').status_code==403
+    transaction.set_rollback(True)
+assert not Sketch.objects.filter(pk=pk).exists()
 assert c.get('/salir/').status_code==405
 assert c.post('/salir/').status_code==302
 assert c.get('/api/sketches/').status_code==403
-print('Editor, calculador, atenciones, distribución y cierre de sesión: OK.')
+print('Editor, calculador, atenciones, distribución, guardado con CSRF y cierre de sesión: OK.')
 PY
 capture_business > "$backup/business-after.json"
 python3 - "$backup" <<'PY'

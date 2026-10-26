@@ -1,3 +1,4 @@
+from django.conf import settings
 from .testing import AuthenticatedTestCase as TestCase
 from django.test import Client, SimpleTestCase, override_settings
 
@@ -95,4 +96,4 @@ class TemplateViewTests(TestCase):
         self.assertEqual(client.post(url, original_data(TEMPLATES[0])).status_code, 403)
         client.get(url)
         self.assertEqual(client.post(url, original_data(TEMPLATES[0]),
-            HTTP_X_CSRFTOKEN=client.cookies["csrftoken"].value).status_code, 200)
+            HTTP_X_CSRFTOKEN=client.cookies[settings.CSRF_COOKIE_NAME].value).status_code, 200)
