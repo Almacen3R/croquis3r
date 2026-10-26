@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: 22 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados probada en local, pendiente de aplicar al servidor. Las revisiones locales pendientes de aplicar están en [pendientes](docs/pendientes-ticoblock.md). No sustituye la revisión profesional de la construcción.
+**Estado: 26 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados. Se comprobaron en local la preferencia de paños visible, puertas ajustables, descargas PNG y de proyecto, importación editable y lista unificada de Proyectos. Las nuevas funciones requieren aplicar su paquete al servidor. No sustituye la revisión profesional de la construcción.
 
 ## Qué se puede probar
 
@@ -15,6 +15,8 @@ Prototipo web para dibujar croquis de casas, vincular objetos con artículos de 
 - Vincular varios artículos a un objeto: cantidad por m² neto, metro lineal o cantidad fija por objeto, con desperdicio configurable.
 - Calcular en el servidor, descontando aberturas del área de pared, con desglose y descarga CSV.
 - Guardar croquis, guardar copias, crear plantillas de croquis y de paredes; deshacer y rehacer durante la sesión.
+- Descargar la imagen PNG del croquis completo y un archivo de proyecto editable; [subirlo como copia para continuar](docs/exportar-importar-proyectos-2026-10-26.md).
+- Recuperar croquis, plantillas personales y cálculos en una sola lista de **Proyectos**, con búsqueda y permisos por usuario.
 
 En esta versión, «unir» significa alinear extremos y presentar una cota continua. Los segmentos conservan sus artículos y su identidad; no se fusionan destructivamente. Cada pared conserva su espesor para la representación, pero este no modifica la fórmula de área. Los cruces y esquinas no tienen una corrección técnica de volumen o aparejo.
 

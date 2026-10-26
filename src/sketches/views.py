@@ -6,7 +6,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.db import connection
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, F, Value, BooleanField
 from django.core.paginator import Paginator
 from django.urls import reverse
 from django.http import Http404
@@ -19,6 +19,7 @@ from catalog.pricing import quote, manual_rows, sketch_rows, template_rows
 from .domain import validate_door_catalog, InvalidDocument, calculate, positive_int, validate_document
 from .models import ObjectTemplate, Sketch, Attention
 from .access import visible_to
+from .project_files import read_project
 from .attention import load_attention, saved_inputs, save_attention
 from .house_calculator import HouseCalculatorForm, RECIPES, VERSION, calculate_house
 from .modulation import calculate_modulation
@@ -71,7 +72,7 @@ def editor(request):
     if not authorized(request):
         return redirect_to_login(request.get_full_path())
     assets = settings.BASE_DIR / "src/static/croquis"
-    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs", "http.mjs"))
+    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs", "http.mjs", "project-files.mjs"))
     return render(request, "sketches/editor.html", {"editor_asset_version": str(version),
         "csrf_cookie_name": settings.CSRF_COOKIE_NAME})
 
@@ -142,17 +143,45 @@ def house_template_detail(request, slug):
         status=400 if form.is_bound and form.errors else 200)
 
 
+def projects_page(request, error='', status=200):
+    query = request.GET.get("q", "").strip()[:160]
+    records = visible_to(Attention, request.user)
+    sketches = visible_to(Sketch, request.user)
+    if query:
+        records = records.filter(Q(project__icontains=query) | Q(customer__icontains=query))
+        sketches = sketches.filter(name__icontains=query)
+    fields = ('id', 'title', 'customer', 'source', 'template_flag', 'updated_at', 'kind')
+    drawn = sketches.order_by().annotate(title=F('name'), customer=Value(''), source=Value('sketch'),
+        template_flag=F('is_template'), kind=Value('sketch')).values(*fields)
+    manual = records.order_by().annotate(title=F('project'), source=Value('attention'),
+        template_flag=Value(False, output_field=BooleanField())).values(*fields)
+    projects = drawn.union(manual, all=True).order_by('-updated_at', '-id', 'source')
+    page = Paginator(projects, 25).get_page(request.GET.get('page'))
+    for row in page:
+        row['url'] = (reverse('editor') + f'?sketch={row["id"]}' if row['source']=='sketch'
+                      else reverse('attention-detail', args=[row['id']]))
+        row['label'] = ('Plantilla de croquis' if row['template_flag'] else 'Croquis') if row['source']=='sketch' else dict(Attention._meta.get_field('kind').choices)[row['kind']]
+    return render(request, 'sketches/attentions.html', {'projects':page, 'query':query,
+        'project_error':error}, status=status)
+
+
 @require_GET
 def attentions(request):
     if not authorized(request):
         return redirect_to_login(request.get_full_path())
-    query = request.GET.get("q", "").strip()[:160]
-    records = visible_to(Attention, request.user)
-    if query:
-        records = records.filter(Q(project__icontains=query) | Q(customer__icontains=query))
-    page = Paginator(records.defer("inputs", "notes"), 25).get_page(request.GET.get("page"))
-    return render(request, "sketches/attentions.html", {"records": page, "query": query,
-        "sketches": visible_to(Sketch, request.user).order_by("-updated_at").values("id", "name", "is_template")[:20]})
+    return projects_page(request)
+
+
+@require_http_methods(['POST'])
+def import_project(request):
+    if not authorized(request):
+        return redirect_to_login(reverse('attentions'))
+    try:
+        title, document = read_project(request.FILES.get('project_file'), articles_by_id())
+    except InvalidDocument as exc:
+        return projects_page(request, error=str(exc), status=400)
+    sketch = Sketch.objects.create(owner=request.user, name=title, document=document)
+    return redirect(reverse('editor') + f'?sketch={sketch.pk}&imported=1')
 
 
 @require_GET

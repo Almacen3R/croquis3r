@@ -6,6 +6,7 @@ urlpatterns = [
     path("ingresar/", LoginView.as_view(template_name="registration/login.html"), name="login"),
     path("salir/", LogoutView.as_view(), name="logout"),
     path("", views.editor, name="editor"),
+    path("proyectos/importar/", views.import_project, name="import-project"),
     path("atenciones/", views.attentions, name="attentions"),
     path("atenciones/<int:pk>/", views.attention_detail, name="attention-detail"),
     path("calculador-casas/", views.house_calculator, name="house-calculator"),

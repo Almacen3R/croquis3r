@@ -15,7 +15,7 @@
     <span class="header-divider"></span><span class="product-label">ESTUDIO DE CROQUIS</span>
     <span class="prototype"><i></i> Prototipo · recetas TicoBlock</span>
     <a class="admin-link calculator-link" href="{% url 'house-calculator' %}">Calculador de casas ↗</a>
-    <a class="admin-link calculator-link" href="{% url 'attentions' %}">Atenciones ↗</a>
+    <a class="admin-link calculator-link" href="{% url 'attentions' %}">Proyectos ↗</a>
     {% if user.is_superuser %}<a class="admin-link" href="/admin/">Administración ↗</a>{% endif %}
   {% include 'sketches/_session.html' %}</header>
   <div class="workspace">
@@ -28,6 +28,7 @@
       <div id="save-feedback" class="save-feedback" role="status" aria-live="polite" hidden></div>
       <div class="button-pair minor"><button id="new">＋ Nuevo</button><button id="example">Ver ejemplo</button></div>
 
+      <div class="transfer-actions"><button id="download-project" class="full secondary">↓ Descargar proyecto</button><a href="{% url 'attentions' %}#import-project" class="transfer-link">↑ Subir proyecto</a></div>
       <div class="section-heading spaced">DIBUJAR <span>02</span></div>
       <label class="field-label" for="max-span">Largo sugerido de paños de pared</label>
       <select id="max-span"><option value="1.5">1,50 m · preferido por 3R</option><option value="2">2 m</option><option value="1">1 m</option><option value="0.5">0,50 m</option></select>
@@ -52,7 +53,7 @@
     </aside>
 
     <main class="main">
-      <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><span id="object-count" class="count-badge">0 objetos</span></div>
+      <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><div class="image-actions"><span id="object-count" class="count-badge">0 objetos</span><button id="download-image" class="secondary">↓ Descargar imagen PNG</button></div></div>
       <div class="canvas-toolbar">
         <div class="toolbar-group"><button id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button><span class="toolbar-separator"></span><label><input type="checkbox" id="snap" checked> Ajustar a 0,50 m</label><label><input type="checkbox" id="dimensions" checked> Medidas</label></div>
         <div class="toolbar-group"><button id="zoom-out" aria-label="Alejar">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Acercar">＋</button><button id="fit" title="Centrar croquis">Centrar</button></div>

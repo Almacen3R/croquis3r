@@ -1,14 +1,14 @@
 {% extends 'sketches/sales_base.html' %}{% load static %}
-{% block title %}Croquis3R · Atención #{{ record.pk }}{% endblock %}
+{% block title %}Croquis3R · Proyecto #{{ record.pk }}{% endblock %}
 {% block scripts %}<script defer src="{% static 'croquis/attention-detail.js' %}"></script>{% endblock %}
 {% block content %}
-<div class="intro"><div><p class="eyebrow">ATENCIÓN #{{ record.pk }} / REVISIÓN {{ record.revision }}</p><h1>{{ record.project }}</h1><p>Cliente: {{ record.customer|default:'Sin referencia de cliente' }}<br>Guardada el {{ record.updated_at|date:'d/m/Y H:i' }} · {{ record.get_kind_display }}</p></div><button id="print" type="button">Imprimir atención ↗</button></div>
-<div class="actions"><a class="button-link" href="{{ edit_url }}">Continuar / editar →</a><a href="{% url 'attentions' %}">Volver a atenciones</a></div>
+<div class="intro"><div><p class="eyebrow">PROYECTO #{{ record.pk }} / REVISIÓN {{ record.revision }}</p><h1>{{ record.project }}</h1><p>Cliente: {{ record.customer|default:'Sin referencia de cliente' }}<br>Guardada el {{ record.updated_at|date:'d/m/Y H:i' }} · {{ record.get_kind_display }}</p></div><button id="print" type="button">Imprimir proyecto ↗</button></div>
+<div class="actions"><a class="button-link" href="{{ edit_url }}">Continuar / editar →</a><a href="{% url 'attentions' %}">Volver a proyectos</a></div>
 <p class="attention-status"><strong>{{ record.review_label }}.</strong> Resultado guardado. Esta vista conserva las cantidades y la versión de recetas de la última revisión; no recalcula al abrir.</p>
-{% if record.notes %}<section class="card"><h2>Notas de la atención</h2><p class="preserve-lines">{{ record.notes }}</p></section>{% endif %}
+{% if record.notes %}<section class="card"><h2>Notas del proyecto</h2><p class="preserve-lines">{{ record.notes }}</p></section>{% endif %}
 <section class="card"><h2>Lista de materiales guardada</h2><div class="table-scroll"><table class="materials"><thead><tr><th>Material</th><th>Unidad</th><th>Cantidad</th></tr></thead><tbody>{% for row in rows %}<tr><td>{{ row.name }}{% if row.changed %}<small>Ajustado · original: {{ row.original|default_if_none:'sin indicar' }}</small>{% endif %}</td><td>{{ row.unit }}</td><td>{{ row.quantity|default_if_none:'Pendiente' }}</td></tr>{% endfor %}</tbody></table></div>
 {% if unknown %}<p class="hint">Hay cantidades pendientes de confirmar. No se interpretan como cero.</p>{% endif %}
 {% if record.kind == 'manual' %}<p class="hint">Altura de referencia: {{ record.result.height_label }} · {{ record.result.panels }} paños · {{ record.result.meters|floatformat:'2' }} metros modulares.</p><div class="warnings"><ul>{% for warning in record.result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></div>{% else %}<p class="hint">Lista basada en el documento de diseños de TicoBlock. Las cantidades ajustadas no modifican el dibujo. Medidas de ventanas transcritas del original; mortero, varilla, cimentación y techo no se calculan en estas listas.</p>{% endif %}
-{% if record.result.pricing %}{% include 'sketches/_pricing.html' with pricing=record.result.pricing only %}{% else %}<p class="hint">Esta atención no contiene precios guardados. Recalcula y guarda una nueva revisión para incorporarlos.</p>{% endif %}
+{% if record.result.pricing %}{% include 'sketches/_pricing.html' with pricing=record.result.pricing only %}{% else %}<p class="hint">Este proyecto no contiene precios guardados. Recalcula y guarda una nueva revisión para incorporarlos.</p>{% endif %}
 <p class="version">Recetas: {{ record.rule_version }}. Estimación de materiales; no es una cotización ni una aprobación constructiva.</p></section>
 {% endblock %}

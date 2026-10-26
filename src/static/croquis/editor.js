@@ -1,6 +1,8 @@
 const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
 const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta.url).search}`);
 
+const {packProject, projectFilename, downloadBlob, drawingPng} = await import(`./project-files.mjs${new URL(import.meta.url).search}`);
+
 const $ = id => document.getElementById(id);
 const svg = $('canvas');
 const NS = 'http://www.w3.org/2000/svg';
@@ -370,11 +372,11 @@ async function save(copy = false, isTemplate = false, overrideName = null) {
       state.dirty = original !== JSON.stringify(state.document) || originalName !== $('project-name').value;
       $('save-status').textContent = state.dirty ? 'Cambios sin guardar' : `Guardado · revisión ${result.revision}`;
     }
-    const savedMessage = isTemplate ? 'Plantilla guardada. Disponible en Atenciones → Croquis y plantillas dibujadas.' : 'Croquis guardado en el servidor. Disponible en Atenciones → Croquis y plantillas dibujadas.';
+    const savedMessage = isTemplate ? 'Plantilla guardada. Disponible en Proyectos.' : 'Croquis guardado en el servidor. Disponible en Proyectos.';
     feedback.textContent = savedMessage;
     message(savedMessage);
     try { await refreshLibrary(); }
-    catch { feedback.textContent = `${savedMessage} No se pudo actualizar la biblioteca; puedes abrirlo desde Atenciones.`; }
+    catch { feedback.textContent = `${savedMessage} No se pudo actualizar la biblioteca; puedes abrirlo desde Proyectos.`; }
   } catch (error) {
     feedback.classList.add('error'); feedback.setAttribute('role','alert');
     feedback.textContent = `No se pudo guardar. ${error.message}`;
@@ -562,6 +564,24 @@ $('modulation-settings').onsubmit=action(async event=>{
   settingsDirty=false;mutate(()=>{state.document=candidate;});message('Configuración aplicada. Revisa la propuesta en Materiales.');
 });
 $('zoom-in').onclick=()=>zoom(.8);$('zoom-out').onclick=()=>zoom(1.25);$('fit').onclick=fit;
+$('download-project').onclick=action(()=>{
+  if(settingsDirty)throw new Error('Aplica la configuración pendiente antes de descargar el proyecto.');
+  const name=$('project-name').value;
+  const exported=snapshot();exported.ticoblock={floor_level:1,...exported.ticoblock,max_span:$('max-span').value};
+  downloadBlob(new Blob([packProject(name,exported,state.articles)],{type:'application/json;charset=utf-8'}),projectFilename(name,'.croquis3r.json'));
+  message('Proyecto descargado. Puedes subir este archivo desde Proyectos para continuar como una copia.');
+});
+$('download-image').onclick=action(async()=>{
+  const button=$('download-image');button.disabled=true;
+  const original=state.selected;
+  try {
+    if(!walls().length)throw new Error('Dibuja una pared antes de descargar la imagen.');
+    state.selected=null;render();
+    const blob=await drawingPng(svg,$('project-name').value,$('area-summary').textContent);
+    downloadBlob(blob,projectFilename($('project-name').value,'.png'));
+    message('Imagen PNG descargada con el croquis completo. Para continuar editando, descarga también el proyecto.');
+  } finally {state.selected=original;render();button.disabled=false;}
+});
 $('export-csv').onclick=()=>{
   if(!state.estimate)return;
   const cell=value=>`"${String(value).replace(/^[=+\-@\t\r]/,"'$&").replaceAll('"','""')}"`;
@@ -587,9 +607,10 @@ async function init(){
     await refreshLibrary();
     const requested=new URLSearchParams(location.search).get('sketch');
     if(requested){
-      if(!/^\d{1,18}$/.test(requested))throw new Error('La referencia del croquis no es válida. Abre uno desde Atenciones.');
+      if(!/^\d{1,18}$/.test(requested))throw new Error('La referencia del croquis no es válida. Abre uno desde Proyectos.');
       const saved=await api(`/api/sketches/${requested}/`);
       replaceDocument(saved.document,saved.name,saved.is_template?null:saved);
+      if(new URLSearchParams(location.search).get('imported')==='1')message('Proyecto importado como copia en tu cuenta. Puedes continuar editándolo; sus materiales se recalculan con las reglas actuales.');
     }else{
       replaceDocument({version:1,objects:[]},'Nuevo croquis');state.dirty=false;$('save-status').textContent='Nuevo croquis · sin cambios';
       message('Dibuja las paredes o pulsa Ver ejemplo para practicar. Cada cuadro representa 0,50 m.');

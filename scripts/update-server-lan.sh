@@ -164,6 +164,7 @@ from django.test import Client
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db import transaction
+from django.core.files.uploadedfile import SimpleUploadedFile
 from sketches.models import Sketch
 import json
 c=Client(HTTP_HOST='192.168.0.214:8013')
@@ -202,12 +203,22 @@ with transaction.atomic():
     result=writer.put(f'/api/sketches/{pk}/',json.dumps({**body,'revision':1}),**kwargs)
     assert result.status_code==200 and result.json()['revision']==2
     assert writer.put(f'/api/sketches/{pk}/',json.dumps(body),content_type='application/json').status_code==403
+    archive={'format':'croquis3r-project','format_version':1,'name':'Prueba transaccional de importación',
+             'units':'m','document':doc,'articles':[]}
+    upload=SimpleUploadedFile('prueba.croquis3r.json',json.dumps(archive).encode(),'application/json')
+    imported=writer.post('/proyectos/importar/',{'project_file':upload},HTTP_X_CSRFTOKEN=token)
+    assert imported.status_code==302,imported.status_code
+    imported_pk=int(imported.url.split('sketch=')[1].split('&')[0])
+    assert imported_pk!=pk
+    assert Sketch.objects.get(pk=imported_pk).owner_id==user.pk
+    assert writer.get(f'/api/sketches/{imported_pk}/').json()['document']==doc
     transaction.set_rollback(True)
 assert not Sketch.objects.filter(pk=pk).exists()
+assert not Sketch.objects.filter(pk=imported_pk).exists()
 assert c.get('/salir/').status_code==405
 assert c.post('/salir/').status_code==302
 assert c.get('/api/sketches/').status_code==403
-print('Editor, calculador, atenciones, distribución, guardado con CSRF y cierre de sesión: OK.')
+print('Editor, calculador, proyectos, distribución, guardado e importación con CSRF y cierre de sesión: OK.')
 PY
 capture_business > "$backup/business-after.json"
 python3 - "$backup" <<'PY'

@@ -2,13 +2,13 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Croquis3R · {{ house.name }}</title><link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-prices1"><script defer src="{% static 'croquis/house-template.js' %}?v=20261022-prices1"></script></head>
 <body data-unsaved="{{ unsaved|yesno:'true,false' }}">
-<header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a><nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Plantillas de casas</a></nav><span class="badge">Lista de referencia de TicoBlock</span>{% include 'sketches/_session.html' %}</header>
+<header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a><nav aria-label="Secciones"><a href="{% url 'attentions' %}">Proyectos</a><a href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Plantillas de casas</a></nav><span class="badge">Lista de referencia de TicoBlock</span>{% include 'sketches/_session.html' %}</header>
 <main>
   <div class="mode-nav"><a href="{% url 'house-templates' %}">← Elegir otra casa</a></div>
   <div class="intro"><div><p class="eyebrow">PLANTILLA / {{ house.area }} M² DECLARADOS</p><h1>{{ house.name }}</h1><p>Usa las cantidades originales o ajusta una copia para tu proyecto. Cambiar una cantidad no modifica el dibujo ni recalcula el diseño.</p></div><button type="button" id="print" {% if not result %}disabled{% endif %}>Imprimir lista ↗</button></div>
   <form method="post" id="template-form">{% csrf_token %}{% include "sketches/_attention_status.html" %}
     {% if form.errors %}<div class="error-summary" role="alert">Revisa los campos señalados. Ingresa cantidades enteras entre 0 y 100.000; usa 0 para quitar un material con cantidad original.</div>{% endif %}
-    <div class="actions"><button type="submit" class="primary">Actualizar mi lista →</button><button type="submit" name="action" value="save">Guardar atención</button>{% if form.record_id.value %}<button type="submit" name="action" value="save_copy">Guardar copia</button>{% endif %}<a href="{% url 'house-template-detail' house.slug %}">Restablecer cantidades originales</a></div>
+    <div class="actions"><button type="submit" class="primary">Actualizar mi lista →</button><button type="submit" name="action" value="save">Guardar proyecto</button>{% if form.record_id.value %}<button type="submit" name="action" value="save_copy">Guardar copia</button>{% endif %}<a href="{% url 'house-template-detail' house.slug %}">Restablecer cantidades originales</a></div>
     <div class="layout">
       <div class="inputs">
         <section class="card"><div class="section-title"><span>01</span><h2>Distribución de referencia</h2></div>
@@ -38,5 +38,5 @@
       </aside>
     </div>
   </form>
-  <footer>Usa Guardar atención para recuperar esta lista por cliente. También puedes imprimir o guardar un PDF. Las plantillas originales permanecen disponibles.</footer>
+  <footer>Usa Guardar proyecto para recuperar esta lista por cliente. También puedes imprimir o guardar un PDF. Las plantillas originales permanecen disponibles.</footer>
 </main></body></html>

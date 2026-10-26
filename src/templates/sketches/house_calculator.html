@@ -9,7 +9,7 @@
 </head>
 <body data-unsaved="{{ unsaved|yesno:'true,false' }}">
   <header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a>
-    <nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'editor' %}">Editor de croquis</a><a href="{% url 'house-calculator' %}" aria-current="page">Calculador de casas</a></nav>
+    <nav aria-label="Secciones"><a href="{% url 'attentions' %}">Proyectos</a><a href="{% url 'editor' %}">Editor de croquis</a><a href="{% url 'house-calculator' %}" aria-current="page">Calculador de casas</a></nav>
     <span class="badge">Prototipo · recetas de TicoBlock</span>{% include 'sketches/_session.html' %}</header>
   <main>
     <div class="mode-nav" aria-label="Modo de cálculo"><a aria-current="page" href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'house-templates' %}">Elegir una casa de plantilla →</a></div>
@@ -34,7 +34,7 @@
     </section>
     <form method="post" id="calculator">{% csrf_token %}{% include "sketches/_attention_status.html" %}
       {% if form.errors %}<div class="error-summary" role="alert"><strong>Revisa los campos señalados.</strong> Las cantidades deben ser enteros dentro de los límites indicados. El resultado anterior no se conserva.</div>{% endif %}
-      <div class="actions"><button type="submit" class="primary">Calcular materiales →</button><button type="submit" name="action" value="save">Guardar atención</button>{% if form.record_id.value %}<button type="submit" name="action" value="save_copy">Guardar copia</button>{% endif %}<button type="button" id="example">Cargar ejemplo</button><a href="{% url 'house-calculator' %}">Nuevo cálculo</a></div>
+      <div class="actions"><button type="submit" class="primary">Calcular materiales →</button><button type="submit" name="action" value="save">Guardar proyecto</button>{% if form.record_id.value %}<button type="submit" name="action" value="save_copy">Guardar copia</button>{% endif %}<button type="button" id="example">Cargar ejemplo</button><a href="{% url 'house-calculator' %}">Nuevo cálculo</a></div>
       <div class="layout">
         <div class="inputs">
           <section class="card settings"><div class="section-title"><span>01</span><h2>Tu proyecto</h2></div>

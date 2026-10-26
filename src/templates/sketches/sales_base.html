@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Croquis3R · Atenciones{% endblock %}</title><link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-prices1">
+<title>{% block title %}Croquis3R · Proyectos{% endblock %}</title><link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-prices1">
 {% block scripts %}{% endblock %}</head><body>
-<header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a><nav aria-label="Secciones"><a href="{% url 'attentions' %}">Atenciones</a><a href="{% url 'house-templates' %}">Plantillas</a><a href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'editor' %}">Dibujar croquis</a></nav>{% include 'sketches/_session.html' %}</header>
+<header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a><nav aria-label="Secciones"><a href="{% url 'attentions' %}">Proyectos</a><a href="{% url 'house-templates' %}">Plantillas</a><a href="{% url 'house-calculator' %}">Calcular por paños</a><a href="{% url 'editor' %}">Dibujar croquis</a></nav>{% include 'sketches/_session.html' %}</header>
 <main>{% block content %}{% endblock %}</main></body></html>
