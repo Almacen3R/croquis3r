@@ -34,3 +34,16 @@ La autorización administrativa instalada corresponde únicamente al paquete ant
 Al aplicar el cambio de nombres de cookies, los usuarios deberán iniciar sesión de nuevo una vez. Antes de actualizar, conservar cualquier dibujo todavía sin guardar; no recargar una pestaña con cambios pendientes. Las cuentas y los croquis existentes permanecen en la base.
 
 Referencias: [Django: SECURE_CROSS_ORIGIN_OPENER_POLICY](https://docs.djangoproject.com/en/5.2/ref/settings/#secure-cross-origin-opener-policy), [HTML: obtención de COOP](https://html.spec.whatwg.org/multipage/browsers.html#obtain-a-cross-origin-opener-policy).
+
+## Resultado en producción
+
+El administrador instaló y lanzó el paquete `cf89838f133b`. Terminó el 26-10-2026 a las 10:46:35 de Costa Rica, con `Result=success` y `ExecMainStatus=0`. La unidad queda `active (exited)` porque la tarea terminó y conserva su resultado.
+
+- Aplicación `croquis3r-app:git-cf89838f133b` y PostgreSQL 18.6 saludables; sin migraciones pendientes.
+- Las 126 pruebas Django pasaron en Docker/PostgreSQL. Se verificaron los 11 artículos homologados mediante consultas SELECT.
+- La comprobación sobre la aplicación desplegada creó, abrió y actualizó un croquis mediante la API con CSRF. La transacción se revirtió para no dejar datos de prueba. Comprobó además acceso, Atenciones y cierre de sesión.
+- La huella de registros comerciales quedó idéntica antes y después: 8 croquis, 3 atenciones, 1 plantilla de objeto y 4 artículos del catálogo interno.
+- Desde la PC, `/health/` y `/ingresar/` respondieron HTTP 200 sin COOP en la LAN; `X-Frame-Options: DENY` y `X-Content-Type-Options: nosniff` permanecen activos.
+- Respaldo previo: `/data/projects/croquis3r/backup-staging/update-20261026T164610Z`.
+
+Queda disponible para que el usuario pruebe su dibujo original con la nueva sesión y versión del editor. Estas verificaciones no identifican retrospectivamente la respuesta fallida original.
