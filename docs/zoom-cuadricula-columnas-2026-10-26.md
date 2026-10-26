@@ -25,3 +25,13 @@ Se puede iniciar un dibujo solo con columnas; sin paredes no se inventan metros 
 En navegador: rueda de 211 % a 384 % y de vuelta; desplazamiento de la vista sin alterar la revisión guardada; colocación de una columna C en el centro del croquis, lista de materiales disponible con una unidad y precio, y guardado como revisión 3 del registro de prueba local. Se inspeccionó la cuadrícula y la ausencia de leyendas en las esquinas.
 
 El actualizador incluye un cálculo de columna independiente mediante la API, junto con guardado e importación en una transacción que se revierte. La actualización de producción requiere aprobar su paquete específico; estas pruebas locales no confirman por sí solas un despliegue.
+
+## Despliegue confirmado
+
+El usuario ejecutó el instalador y el inicio del paquete `907a291106cc`. Terminó el 26-10-2026 a las 16:40:23 de Costa Rica con `Result=success` y `ExecMainStatus=0`. La aplicación y PostgreSQL 18.6 quedaron saludables; no hubo migraciones pendientes.
+
+Pasaron las 134 pruebas Django con PostgreSQL y la comprobación transaccional de la API, incluido el conteo de una columna independiente, guardado e importación con CSRF. Se verificaron los 11 artículos homologados mediante SELECT. La huella antes y después confirmó la conservación de 11 croquis, 3 atenciones, 1 plantilla de objeto y 4 artículos internos. La salud por LAN también respondió correctamente desde la PC tras el despliegue.
+
+Respaldo previo: `/data/projects/croquis3r/backup-staging/update-20261026T223958Z`.
+
+El comando que ejecuta el usuario instala la autorización específica e inicia la actualización completa en segundo plano. Si termina correctamente, la versión ya queda aplicada; la revisión posterior del agente verifica el resultado y lo documenta, sin una segunda activación. El mensaje de inicio no significa que haya terminado. `active (exited)` con resultado satisfactorio indica que la unidad conserva el resultado de la tarea completada.

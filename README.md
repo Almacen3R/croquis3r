@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: 26 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados. La versión `ced0fe4e7935` está desplegada y verificada: preferencia de paños visible, puertas ajustables, descargas PNG y de proyecto, importación editable y lista unificada de Proyectos. Ver las [comprobaciones y el resultado del despliegue](docs/exportar-importar-proyectos-2026-10-26.md). No sustituye la revisión profesional de la construcción.
+**Estado: 26 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados. La versión `907a291106cc` está desplegada y verificada: preferencia de paños visible, puertas ajustables, descargas e importación de proyectos, lista unificada de Proyectos, zoom con rueda y desplazamiento, cuadrícula de mayor contraste y columnas independientes contabilizadas. Ver las [comprobaciones y el resultado del despliegue](docs/exportar-importar-proyectos-2026-10-26.md). No sustituye la revisión profesional de la construcción.
 
 ## Qué se puede probar
 
