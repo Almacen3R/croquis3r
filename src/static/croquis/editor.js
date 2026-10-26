@@ -1,4 +1,4 @@
-const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
+const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea, zoomView} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
 const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta.url).search}`);
 
 const {packProject, projectFilename, downloadBlob, drawingPng} = await import(`./project-files.mjs${new URL(import.meta.url).search}`);
@@ -10,6 +10,7 @@ const state = {document: {version: 1, objects: []}, selected: null, tool: 'selec
   articles: [], templates: [], id: null, revision: null, isTemplate: false, dirty: false,
   history: [], future: [], estimate: null, estimateTimer: null, estimateRequest: 0, view: [-2, -2, 16, 12]};
 let drag = null;
+let panDrag = null;
 let settingsDirty = false;
 const walls = () => state.document.objects.filter(o => o.kind === 'wall');
 const allObjects = () => [...state.document.objects,...(state.document.columns||[])];
@@ -60,11 +61,14 @@ function setTool(tool) {
   state.tool = tool; state.start = null; $('preview').replaceChildren();
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   svg.classList.toggle('drawing', tool !== 'select');
-  $('tool-hint').textContent = ({select: 'Arrastra el cuerpo para mover. Arrastra las bolitas de los extremos para cambiar el largo.',
+  $('tool-hint').textContent = ({select: 'Rueda para acercar o alejar; arrastra el fondo para mover la vista. Las bolitas cambian el largo.',
     wall: 'Haz clic en el inicio y luego en el final de la pared. Esc cancela el trazo.',
-    column_C: 'Haz clic sobre una pared o marca propuesta para colocar una columna C lineal. Esc termina.',
-    column_E: 'Haz clic sobre una esquina o cruce para colocar una columna E. Esc termina.',
+    column_C: 'Haz clic para colocar una columna C, en pared o independiente. Esc termina.',
+    column_E: 'Haz clic para colocar una columna E, en pared o independiente. Esc termina.',
+    pan: 'Arrastra el plano para mover la vista. Usa la rueda para acercar o alejar. Esc vuelve a Seleccionar.',
     door: 'Haz clic sobre una pared para colocar una puerta. Arrastra sus extremos para ajustar el largo en pasos de 0,50 m.', window: 'Haz clic en el tramo de pared que ocupará la ventana (hasta 2 m). Después puedes ajustar sus extremos.'})[tool];
+  $('pan-view').setAttribute('aria-pressed',String(tool==='pan'));
+  svg.classList.toggle('panning',tool==='pan');
   render();
 }
 function rawPoint(event) {
@@ -212,7 +216,7 @@ function renderInspector() {
     field(grid,'y','Posición Y · m',obj.y,{type:'number',step:'.5',min:-100,max:100});
     const label=element('label',{},'Tipo de columna'), select=element('select',{name:'column_type','aria-label':'Tipo de columna'});
     for(const [value,text] of [['C','C · Lineal (pared recta)'],['E','E · Esquina o cruz']])select.append(element('option',{value},text));
-    select.value=obj.column_type;label.append(select);fields.append(label,element('p',{class:'fine-print'},'Arrastra la columna para moverla. Se cuenta una sola vez aunque varias paredes compartan la posición. Una columna intermedia divide el paño y actualiza sus materiales.'));
+    select.value=obj.column_type;label.append(select);fields.append(label,element('p',{class:'fine-print'},'Arrastra la columna para moverla. Se cuenta una vez, esté en una pared o independiente. Sobre una pared divide el paño; fuera de ella no cambia los bloques de pared.'));
   } else if (obj.kind === 'wall') {
     for (const [key, label] of [['x1','Inicio X · m'], ['y1','Inicio Y · m'], ['x2','Final X · m'], ['y2','Final Y · m']]) field(grid, key, label, obj[key], {type: 'number', step: '.01', min: -100, max: 100});
     field(grid, 'height', 'Altura · m', obj.height, {type: 'number', step: '.01', min: .1, max: 10});
@@ -272,7 +276,7 @@ async function estimate() {
 }
 function renderEstimate() {
   const result = state.estimate;
-  $('estimate-status').textContent = result.status === 'empty' ? 'Dibuja una pared para comenzar.' : result.status === 'ready' ? `${result.panels} paños propuestos · ${fmt(result.meters)} m · ${result.column_mode==='drawn'?`${result.drawn_column_count} columnas colocadas · ${result.missing_column_positions.length} pendientes`:`${result.column_positions.length} ubicaciones de columna por clasificar`}` : 'Pendiente: revisa las medidas señaladas';
+  $('estimate-status').textContent = result.status === 'empty' ? 'Dibuja una pared para comenzar.' : result.status === 'ready' ? `${result.panels} paños propuestos · ${fmt(result.meters)} m · ${result.column_mode==='drawn'?`Columnas: ${result.drawn_column_count}${result.standalone_column_count?` · independientes: ${result.standalone_column_count}`:""} · ubicaciones pendientes: ${result.missing_column_positions.length}`:`${result.column_positions.length} ubicaciones de columna por clasificar`}` : 'Pendiente: revisa las medidas señaladas';
   $('material-count').textContent = result.items.length;
   $('material-items').replaceChildren(); $('material-warnings').replaceChildren(); $('calculation-details').replaceChildren();
   $('modulation-issues').replaceChildren();
@@ -335,13 +339,20 @@ function tab(which) {
   $('tab-object').classList.toggle('active', which === 'object'); $('tab-materials').classList.toggle('active', which === 'materials');
 }
 function fit() {
-  if (!walls().length) {state.view = [-2,-2,16,12]; applyView(); return;}
-  const xs = walls().flatMap(w => [w.x1,w.x2]), ys = walls().flatMap(w => [w.y1,w.y2]);
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  state.view = [minX-1.8,minY-1.8,Math.max(6,maxX-minX+3.6),Math.max(5,maxY-minY+3.6)]; applyView();
+  const points=[...walls().flatMap(w=>[{x:w.x1,y:w.y1},{x:w.x2,y:w.y2}]),...(state.document.columns||[])];
+  if (!points.length) {state.view = [-2,-2,16,12]; applyView(); return;}
+  const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  state.view=[minX-1.8,minY-1.8,Math.max(6,maxX-minX+3.6),Math.max(5,maxY-minY+3.6)];applyView();
 }
 function applyView() {svg.setAttribute('viewBox',state.view.join(' ')); $('zoom-label').textContent = `${Math.round(1600/state.view[2])}%`;}
-function zoom(factor) {const [x,y,w,h] = state.view; const nw = Math.max(2,Math.min(240,w*factor)), nh = h*nw/w; state.view = [x+(w-nw)/2,y+(h-nh)/2,nw,nh];applyView();}
+function zoom(factor,anchor=null) {if(panDrag)finishPan();state.view=zoomView(state.view,factor,anchor);applyView();}
+svg.addEventListener('wheel',event=>{
+  event.preventDefault();
+  const delta=event.deltaY*(event.deltaMode===1?20:event.deltaMode===2?300:1);
+  zoom(Math.exp(Math.max(-300,Math.min(300,delta))*.002),rawPoint(event));
+},{passive:false});
+
 async function refreshLibrary() {
   const data = await api('/api/sketches/'); $('saved-list').replaceChildren(element('option', {value:''}, 'Seleccionar un croquis…'));
   for (const sketch of data.sketches) $('saved-list').append(element('option', {value:sketch.id}, `${sketch.is_template ? '◇ Plantilla · ' : ''}${sketch.name}`));
@@ -407,11 +418,15 @@ function example() {
 }
 
 svg.addEventListener('pointerdown', action(event => {
-  if (event.button !== 0) return;
+  if (event.button !== 0 && event.button !== 1) return;
   const p = point(event), target = event.target.closest('[data-object]');
   const obj = target && allObjects().find(o => o.id === target.dataset.object);
+  if(event.button===1 || state.tool==='pan' || (state.tool==='select' && !obj)) {
+    event.preventDefault();
+    panDrag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,view:[...state.view],matrix:svg.getScreenCTM().inverse(),moved:false,clearOnClick:event.button===0&&state.tool==='select'&&!obj};
+    svg.setPointerCapture(event.pointerId);svg.classList.add('dragging-view');return;
+  }
   if(state.tool.startsWith('column_')) {
-    if(!walls().length)throw new Error('Dibuja primero las paredes para colocar sus columnas.');
     const location=columnPoint(rawPoint(event),walls(),state.estimate?.column_positions||[],$('snap').checked);
     const existing=(state.document.columns||[]).find(c=>Math.hypot(c.x-location.x,c.y-location.y)<.00001);
     const columnType=state.tool.slice(-1);
@@ -442,6 +457,11 @@ svg.addEventListener('pointerdown', action(event => {
   }
 }));
 svg.addEventListener('pointermove', event => {
+  if(panDrag && panDrag.pointerId===event.pointerId) {
+    const dx=event.clientX-panDrag.x,dy=event.clientY-panDrag.y,m=panDrag.matrix;
+    if(Math.hypot(dx,dy)>4)panDrag.moved=true;
+    state.view=[panDrag.view[0]-dx*m.a-dy*m.c,panDrag.view[1]-dx*m.b-dy*m.d,...panDrag.view.slice(2)];applyView();return;
+  }
   const p = drag && drag.original.kind !== 'wall' ? rawPoint(event) : point(event, drag?.id);
   if (state.tool === 'wall' && state.start) {
     const end = Math.abs(p.x-state.start.x) >= Math.abs(p.y-state.start.y) ? {x:p.x,y:state.start.y} : {x:state.start.x,y:p.y};
@@ -484,8 +504,10 @@ function finishDrag() {
     else if(obj && obj.kind!=='wall') message(`${obj.kind==='door'?doorName(obj.width):typeName(obj.kind)}: módulo de ${fmt(obj.width)} m, inicio a ${fmt(obj.offset)} m de la pared. Puedes deshacer el ajuste.`);
   } else if(finished)render();
 }
-svg.addEventListener('pointerup',finishDrag);
-svg.addEventListener('pointercancel',() => {if(drag){state.document=drag.before;drag=null;render();}});
+function finishPan() {const finished=panDrag;panDrag=null;svg.classList.remove('dragging-view');if(finished?.clearOnClick&&!finished.moved){state.selected=null;render();}}
+svg.addEventListener('pointerup',()=>{finishPan();finishDrag();});
+svg.addEventListener('lostpointercapture',finishPan);
+svg.addEventListener('pointercancel',() => {finishPan();if(drag){state.document=drag.before;drag=null;render();}});
 document.querySelectorAll('[data-tool]').forEach(button => button.onclick=action(()=>{
   const tool=button.dataset.tool, obj=selected();
   if(['door','window'].includes(tool) && obj?.kind==='wall' && !state.document.objects.some(o=>o.wall_id===obj.id)) {
@@ -575,7 +597,7 @@ $('download-image').onclick=action(async()=>{
   const button=$('download-image');button.disabled=true;
   const original=state.selected;
   try {
-    if(!walls().length)throw new Error('Dibuja una pared antes de descargar la imagen.');
+    if(!allObjects().length)throw new Error('Dibuja un objeto antes de descargar la imagen.');
     state.selected=null;render();
     const blob=await drawingPng(svg,$('project-name').value,$('area-summary').textContent);
     downloadBlob(blob,projectFilename($('project-name').value,'.png'));

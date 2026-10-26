@@ -49,7 +49,7 @@ def calculate_modulation(document, articles):
     walls = [o for o in document["objects"] if o["kind"] == "wall"]
     openings = [o for o in document["objects"] if o["kind"] != "wall"]
     drawn_columns = document.get("columns")
-    if not walls:
+    if not walls and not drawn_columns:
         return {"status": "empty", "items": [], "details": [], "segments": [], "column_positions": [],
                 "issues": [], "warnings": [], "notice": "Dibuja una pared para comenzar."}
     recipes = {(r.kind, Decimal(r.length)): r for r in RECIPES}
@@ -67,9 +67,8 @@ def calculate_modulation(document, articles):
         distance = abs((column["x"] - wall["x1"]) * dy - (column["y"] - wall["y1"]) * dx) / length
         return at if distance < EPS and -EPS <= at <= length + EPS else None
 
-    for column in drawn_columns or []:
-        if not any(column_distance(column, wall) is not None for wall in walls):
-            issue(column, "La columna está fuera de las paredes. Muévela sobre una pared o encuentro.")
+    standalone_columns = [column for column in drawn_columns or []
+                          if not any(column_distance(column, wall) is not None for wall in walls)]
 
     def add(wall, start, size, kind, opening=None):
         recipe = recipes.get((kind, Decimal(str(round(size, 6)))))
@@ -148,6 +147,11 @@ def calculate_modulation(document, articles):
                 add(wall, start, size, "Completo")
                 start += size
                 remaining -= size
+    if not walls:
+        families.add(settings.get('block_family', '12'))
+        if settings.get('floor_level', 1) == 2 and '10' in families:
+            issues.append({'object_id':None, 'label':'Segundo piso',
+                           'message':'Segundo piso: usa bloques de 12 cm con columnas.'})
     if len(heights) > 1:
         issues.append({"object_id": None, "label": "Proyecto", "message": "Usa una misma altura de referencia en todas las paredes; no hay receta validada para alturas mixtas."})
     if len(families)>1:
@@ -172,6 +176,8 @@ def calculate_modulation(document, articles):
             key = (round(xy[0], 5), round(xy[1], 5))
             nodes.setdefault(key, {"x": xy[0], "y": xy[1]})
     warnings = list(result["warnings"])
+    if standalone_columns:
+        warnings.append(f"{len(standalone_columns)} columna(s) independiente(s), fuera de paredes: se incluyen en la cantidad C/E. No dividen paños ni agregan paredes; su ubicación y función deben revisarse en el proyecto.")
     missing_columns = []
     if drawn_columns is not None:
         placed = {(round(c["x"], 5), round(c["y"], 5)) for c in drawn_columns}
@@ -196,7 +202,8 @@ def calculate_modulation(document, articles):
         "weight_note": "Peso de los productos de 10 cm pendiente de confirmar." if result["block_family"]=="10" else "Peso pendiente de confirmar las cantidades de columnas.",
         "beam_layers": result["beam_layers"], "beam_details": result["beam_details"], "beam_basis": result["beam_basis"],
         "column_mode": "drawn" if drawn_columns is not None else "manual",
-        "drawn_column_count": len(drawn_columns or []), "missing_column_positions": missing_columns,
+        "drawn_column_count": len(drawn_columns or []), "standalone_column_count": len(standalone_columns),
+        "missing_column_positions": missing_columns,
         "column_positions": list(nodes.values()), "issues": [], "warnings": warnings,
         "items": [{"sku": "", "name": label, "quantity": None if columns_pending and drawn_columns is None and label.startswith("Columna") else quantity, "unit": unit,
                    "source": "Ficha N-12: 40 cm; aclaración 22-10-2026 y redondeo superior por pared" if label=="Vigabloque" else "Receta del modulador TicoBlock", "is_demo": False}

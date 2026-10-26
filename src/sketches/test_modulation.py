@@ -64,14 +64,44 @@ class ModulationTests(SimpleTestCase):
         self.assertEqual([r["quantity"] for r in result["items"]][2:4], [0, 0])
         self.assertTrue(result["columns_pending"])
 
-    def test_off_wall_non_modular_and_inside_opening_columns_block_calculation(self):
-        for x, y in [(1, 2), (.7, 0), (2, 0)]:
+    def test_non_modular_and_inside_opening_columns_block_calculation(self):
+        for x, y in [(.7, 0), (2, 0)]:
             data = doc(wall(), opening())
             data["columns"] = [{"id": "c", "x": x, "y": y, "column_type": "C"}]
             result = calculate_modulation(data, {})
             self.assertEqual(result["status"], "incomplete")
             self.assertEqual(result["items"], [])
             self.assertEqual(result["issues"][0]["object_id"], "c")
+
+    def test_independent_columns_are_counted_without_changing_wall_materials(self):
+        data=doc(wall(),opening())
+        baseline=calculate_modulation(data,{})
+        data['columns']=[{'id':'c','x':2,'y':2,'column_type':'C'},
+                         {'id':'e','x':-1,'y':-1,'column_type':'E'}]
+        result=calculate_modulation(data,{})
+        self.assertEqual(result['status'],'ready')
+        self.assertEqual(result['standalone_column_count'],2)
+        self.assertEqual(result['drawn_column_count'],2)
+        self.assertEqual([r['quantity'] for r in result['items']][2:4],[1,1])
+        self.assertEqual([r['quantity'] for r in result['items']][:2],
+                         [r['quantity'] for r in baseline['items']][:2])
+        self.assertEqual(result['segments'],baseline['segments'])
+        self.assertEqual(result['issues'],[])
+        self.assertTrue(any('independiente' in w for w in result['warnings']))
+
+    def test_column_only_project_counts_products_without_creating_walls(self):
+        data=doc()
+        data['columns']=[{'id':'c','x':2,'y':2,'column_type':'C'}]
+        result=calculate_modulation(data,{})
+        self.assertEqual(result['status'],'ready')
+        self.assertEqual(result['drawn_column_count'],1)
+        self.assertEqual([r['quantity'] for r in result['items']][:5],[0,0,1,0,0])
+        self.assertEqual(result['meters'],0)
+        self.assertEqual(result['weight'],108)
+        data['ticoblock']['block_family']='10'
+        self.assertIsNone(calculate_modulation(data,{})['weight'])
+        data['ticoblock']['floor_level']=2
+        self.assertEqual(calculate_modulation(data,{})['status'],'incomplete')
 
     def test_column_validation_rejects_duplicates_and_obsolete_types(self):
         column = {"id": "c", "x": 0, "y": 0, "column_type": "C"}

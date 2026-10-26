@@ -38,8 +38,8 @@
         <button class="tool" data-tool="wall"><span class="tool-icon">▰</span><span>Pared<small>Marca inicio y final</small></span><kbd>P</kbd></button>
         <button class="tool" data-tool="door"><span class="tool-icon door-icon">◰</span><span>Puerta<small>Usar pared seleccionada o tocar pared</small></span></button>
         <button class="tool" data-tool="window"><span class="tool-icon">⊟</span><span>Ventana<small>Usar pared seleccionada o tocar pared</small></span></button>
-        <button class="tool" data-tool="column_C"><span class="tool-icon">C</span><span>Columna C<small>Lineal · colocar sobre pared</small></span></button>
-        <button class="tool" data-tool="column_E"><span class="tool-icon">E</span><span>Columna E<small>Esquina o cruce</small></span></button>
+        <button class="tool" data-tool="column_C"><span class="tool-icon">C</span><span>Columna C<small>Lineal · en pared o independiente</small></span></button>
+        <button class="tool" data-tool="column_E"><span class="tool-icon">E</span><span>Columna E<small>Esquina, cruce o independiente</small></span></button>
       </div>
       <div class="section-heading spaced">BIBLIOTECA <span>03</span></div>
       <label class="field-label" for="saved-list">Croquis y plantillas guardadas</label>
@@ -56,17 +56,16 @@
       <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><div class="image-actions"><span id="object-count" class="count-badge">0 objetos</span><button id="download-image" class="secondary">↓ Descargar imagen PNG</button></div></div>
       <div class="canvas-toolbar">
         <div class="toolbar-group"><button id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button><span class="toolbar-separator"></span><label><input type="checkbox" id="snap" checked> Ajustar a 0,50 m</label><label><input type="checkbox" id="dimensions" checked> Medidas</label></div>
-        <div class="toolbar-group"><button id="zoom-out" aria-label="Alejar">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Acercar">＋</button><button id="fit" title="Centrar croquis">Centrar</button></div>
+        <div class="toolbar-group"><button id="zoom-out" aria-label="Alejar" title="Alejar el plano">− Alejar</button><span id="zoom-label" role="status" aria-label="Nivel de zoom">100%</span><button id="zoom-in" aria-label="Acercar" title="Acercar el plano">＋ Acercar</button><button id="fit" title="Centrar todo el croquis">Centrar</button><button id="pan-view" data-tool="pan" aria-pressed="false" title="Arrastrar para mover la vista">Mover vista</button></div>
       </div>
       <div class="drawing-area">
-        <div class="drawing-label"><span class="sheet-marker">A—01</span> VISTA EN PLANTA <span>Cada cuadro: 0,50 × 0,50 m</span></div>
         <svg id="canvas" viewBox="-2 -2 16 12" role="img" aria-label="Lienzo de croquis interactivo. Use las herramientas y los campos de medidas para editar.">
-          <defs><pattern id="grid" width="0.5" height="0.5" patternUnits="userSpaceOnUse"><path d="M 0.5 0 L 0 0 L 0 0.5" fill="none" stroke="#dce5dc" stroke-width="0.012"/></pattern></defs>
+          <defs><pattern id="grid" width="0.5" height="0.5" patternUnits="userSpaceOnUse"><path d="M 0.5 0 L 0 0 L 0 0.5" fill="none" stroke="#7d9084" stroke-width="1" vector-effect="non-scaling-stroke"/></pattern></defs>
           <rect x="-200" y="-200" width="400" height="400" fill="url(#grid)"/>
           <g id="scene"></g><g id="modulation" pointer-events="none"></g><g id="measurements" pointer-events="none"></g><g id="preview" pointer-events="none"></g>
         </svg>
-        <div class="canvas-footer"><span id="tool-hint">Selecciona una pared para editar sus medidas y materiales.</span><span class="north">↑ N <small>referencia</small></span></div>
       </div>
+      <p id="tool-hint" class="canvas-help" aria-live="polite">Rueda del ratón para acercar o alejar. Arrastra el fondo para mover la vista.</p>
       <div class="under-canvas"><span><i class="green-dot"></i> <span id="geometry-summary">Croquis conceptual</span></span><span>Extremos editables · largos modulares de referencia</span></div>
       <div id="message" class="message" role="status" aria-live="polite" hidden></div>
       <p id="area-summary" class="panel-copy" aria-live="polite">Área de la casa: cierra el contorno para calcularla</p><p class="fine-print">Área en planta sobre las líneas de referencia de las paredes. No descuenta espesores ni patios interiores.</p>

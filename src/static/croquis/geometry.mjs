@@ -106,6 +106,14 @@ export function columnPoint(point, walls, proposals=[], snap=true) {
   return snapPoint(point,walls,snap);
 }
 
+// Conserva el punto bajo el cursor y la proporción de la vista al ampliar.
+export function zoomView(view, factor, anchor=null) {
+  const [x,y,w,h]=view;
+  const width=Math.max(1,Math.min(400,w*factor)),ratio=width/w;
+  const at=anchor || {x:x+w/2,y:y+h/2};
+  return [at.x-(at.x-x)*ratio,at.y-(at.y-y)*ratio,width,h*ratio];
+}
+
 export function doorSwing(opening, wall) {
   const p=openingPoints(opening,wall), rotation=opening.door_rotation || 0;
   const reverse=rotation%2===1, side=rotation<2?1:-1;

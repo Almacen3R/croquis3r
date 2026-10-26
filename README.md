@@ -9,6 +9,8 @@ Prototipo web para dibujar croquis de casas, vincular objetos con artículos de 
 - Dibujar paredes horizontales y verticales con dos clics, ajuste a 0,50 m y a extremos cercanos.
 - Arrastrar cualquiera de los puntos de una pared seleccionada para cambiar su largo y dirección, incluyendo inclinaciones. El otro extremo permanece fijo y las aberturas siguen vinculadas. No permite acortar por debajo de 10 cm ni dejar aberturas fuera de la pared.
 - Ver cotas en metros; los tramos contiguos sobre la misma línea comparten una cota total.
+- Acercar/alejar con rueda o botones y mover la vista; cuadrícula de mayor contraste, sin leyendas en las esquinas.
+- Contar columnas independientes sin bloquear los materiales de paredes. Ver [zoom, cuadrícula y columnas](docs/zoom-cuadricula-columnas-2026-10-26.md) para alcance y estado de la entrega.
 - Seleccionar, arrastrar, duplicar y borrar paredes. La duplicación conserva sus aberturas y artículos.
 - Editar coordenadas, altura y espesor con medidas exactas.
 - Colocar puertas y ventanas sobre paredes y editar su posición, ancho, altura y altura sobre el piso.

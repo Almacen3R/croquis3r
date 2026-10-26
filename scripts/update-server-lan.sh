@@ -192,13 +192,19 @@ with transaction.atomic():
     assert writer.get('/').status_code==200
     token=writer.cookies[settings.CSRF_COOKIE_NAME].value
     doc={'version':1,'objects':[{'id':'test-wall','kind':'wall','label':'Prueba transaccional',
-         'x1':0,'y1':0,'x2':2,'y2':0,'height':2.5,'thickness':.12,'assignments':[]}]}
+         'x1':0,'y1':0,'x2':2,'y2':0,'height':2.5,'thickness':.12,'assignments':[]}],
+         'columns':[{'id':'test-column','kind':'column','label':'Independiente','x':1,'y':1,'column_type':'C'}]}
     body={'name':'Prueba transaccional de despliegue','document':doc}
     kwargs={'content_type':'application/json','HTTP_X_CSRFTOKEN':token}
     result=writer.post('/api/sketches/',json.dumps(body),**kwargs)
     assert result.status_code==201,result.status_code
     pk=result.json()['id']
     assert writer.get(f'/api/sketches/{pk}/').json()['document']==doc
+    calculated=writer.post('/api/ticoblock-estimate/',json.dumps({'document':doc}),**kwargs)
+    assert calculated.status_code==200
+    materials=calculated.json()
+    assert materials['status']=='ready' and materials['standalone_column_count']==1
+    assert next(row['quantity'] for row in materials['items'] if row['name']=='Columna C · lineal')==1
     assert f'?sketch={pk}' in writer.get('/atenciones/').content.decode()
     result=writer.put(f'/api/sketches/{pk}/',json.dumps({**body,'revision':1}),**kwargs)
     assert result.status_code==200 and result.json()['revision']==2
@@ -218,7 +224,7 @@ assert not Sketch.objects.filter(pk=imported_pk).exists()
 assert c.get('/salir/').status_code==405
 assert c.post('/salir/').status_code==302
 assert c.get('/api/sketches/').status_code==403
-print('Editor, calculador, proyectos, distribución, guardado e importación con CSRF y cierre de sesión: OK.')
+print('Editor, calculador, proyectos, columnas independientes, guardado e importación con CSRF y cierre de sesión: OK.')
 PY
 capture_business > "$backup/business-after.json"
 python3 - "$backup" <<'PY'
