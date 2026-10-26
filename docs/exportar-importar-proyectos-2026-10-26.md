@@ -33,3 +33,13 @@ El acceso **Subir proyecto** está en la cabecera y en el editor. Los errores de
 En el navegador se descargaron un PNG y un proyecto reales. Se inspeccionó visualmente la imagen completa. Se subió el archivo descargado, se abrió como otro croquis, se modificó la apertura de una puerta y se guardó como revisión 2. Se comprobó que el original y la copia seguían accesibles en Proyectos. La copia está identificada como prueba local; no se eliminaron registros.
 
 El actualizador de producción incluye una prueba transaccional de importación y guardado con CSRF, revertida para no dejar proyectos de prueba. La publicación en producción requiere aprobar el paquete correspondiente; la prueba local no confirma por sí sola un despliegue.
+
+## Despliegue confirmado
+
+El usuario ejecutó el instalador y lanzó el paquete `ced0fe4e7935`. Terminó el 26-10-2026 a las 12:35:10 de Costa Rica, con `Result=success`, `ExecMainStatus=0` y ambos contenedores saludables. El estado `active (exited)` conserva el resultado de la tarea terminada.
+
+Se aprobaron las 132 pruebas Django sobre una base PostgreSQL de prueba y la comprobación transaccional de guardado/importación con CSRF sobre la aplicación desplegada. Se verificaron los 11 artículos homologados mediante SELECT. No hubo migraciones pendientes. Las huellas antes y después confirmaron que se conservaron 10 croquis, 3 atenciones, 1 plantilla de objeto y 4 artículos internos.
+
+Desde la PC, la salud por LAN respondió correctamente y el módulo servido `project-files.mjs` coincidió byte a byte con la versión publicada. El PNG y la edición posterior a importar se comprobaron en navegador local; esta comprobación de producción confirma además la API y la distribución del mismo módulo.
+
+Respaldo previo: `/data/projects/croquis3r/backup-staging/update-20261026T183445Z`. Esta versión incluye también las mejoras anteriores de preferencia visible de paños y puertas ajustables.
