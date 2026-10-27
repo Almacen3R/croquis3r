@@ -44,6 +44,8 @@ export async function drawingPng(svg, title, description) {
   const ns='http://www.w3.org/2000/svg',copy=svg.cloneNode(true);
   copy.setAttribute('xmlns',ns);copy.setAttribute('font-family','Arial, sans-serif');
   copy.removeAttribute('class');copy.removeAttribute('style');
+  // On paper the grid stays in the background; dimensions retain their dark strokes.
+  copy.querySelector('#grid path')?.setAttribute('stroke-opacity','.35');
   copy.querySelector('#preview')?.remove();
   copy.querySelectorAll('[data-endpoint],[data-handle]').forEach(node=>node.remove());
   const boxes=['scene','modulation','measurements'].map(id=>svg.querySelector(`#${id}`)).filter(g=>g?.childNodes.length).map(g=>g.getBBox());

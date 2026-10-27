@@ -183,13 +183,13 @@ function renderDimensions() {
     const {ux,uy,nx,ny}=frame;
     const draw=(part,distance,kind)=>{
       const offset=p=>({x:p.x+nx*distance,y:p.y+ny*distance});
-      const a=offset(part.a),b=offset(part.b), color=kind==='part'?'#7c9688':'#587d61';
-      for(const p of [part.a,part.b])shape('line',{x1:p.x+nx*.12,y1:p.y+ny*.12,x2:p.x+nx*(distance+.1),y2:p.y+ny*(distance+.1),stroke:'#d3ded3','stroke-width':.008},g);
-      shape('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:color,'stroke-width':.012},g);
-      for(const p of [a,b])shape('line',{x1:p.x-ux*.04-nx*.065,y1:p.y-uy*.04-ny*.065,x2:p.x+ux*.04+nx*.065,y2:p.y+uy*.04+ny*.065,stroke:color,'stroke-width':.014},g);
+      const a=offset(part.a),b=offset(part.b), color=kind==='part'?'#354e42':'#213d30';
+      for(const p of [part.a,part.b])shape('line',{x1:p.x+nx*.12,y1:p.y+ny*.12,x2:p.x+nx*(distance+.1),y2:p.y+ny*(distance+.1),stroke:'#82958a','stroke-width':.014},g);
+      shape('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:color,'stroke-width':.022},g);
+      for(const p of [a,b])shape('line',{x1:p.x-ux*.04-nx*.065,y1:p.y-uy*.04-ny*.065,x2:p.x+ux*.04+nx*.065,y2:p.y+uy*.04+ny*.065,stroke:color,'stroke-width':.026},g);
       const x=(a.x+b.x)/2+nx*.12,y=(a.y+b.y)/2+ny*.12;
       const angle=Math.atan2(uy,ux)*180/Math.PI;
-      shape('text',{x,y,fill:color,'font-size':kind==='part'?.13:.16,'font-family':'Segoe UI, sans-serif','text-anchor':'middle','dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':.045,transform:`rotate(${angle} ${x} ${y})`,'data-dimension-kind':kind,'data-length':+part.length.toFixed(6)},g,`${fmt(part.length)} m`);
+      shape('text',{x,y,fill:color,'font-size':kind==='part'?.17:.20,'font-weight':700,'font-family':'Arial, sans-serif','text-anchor':'middle','dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':.055,transform:`rotate(${angle} ${x} ${y})`,'data-dimension-kind':kind,'data-length':+part.length.toFixed(6)},g,`${fmt(part.length)} m`);
     };
     for(const part of frame.parts)draw(part,.32,'part');
     draw(frame,frame.parts.length?.88:.45,'total');
@@ -197,7 +197,7 @@ function renderDimensions() {
   const obj=selected();
   if(obj&&['door','window'].includes(obj.kind)){
     const wall=walls().find(w=>w.id===obj.wall_id);
-    if(wall){const p=openingPoints(obj,wall);shape('text',{x:(p.x1+p.x2)/2,y:(p.y1+p.y2)/2+.32,fill:'#a87a43','font-size':.16,'text-anchor':'middle'},g,`${fmt(obj.width)} × ${fmt(obj.height)} m`);}
+    if(wall){const p=openingPoints(obj,wall);shape('text',{x:(p.x1+p.x2)/2,y:(p.y1+p.y2)/2+.32,fill:'#704b23','font-size':.20,'font-weight':700,'text-anchor':'middle','paint-order':'stroke',stroke:'#fff','stroke-width':.055},g,`${fmt(obj.width)} × ${fmt(obj.height)} m`);}
   }
 }
 function field(parent, key, label, value, options = {}) {

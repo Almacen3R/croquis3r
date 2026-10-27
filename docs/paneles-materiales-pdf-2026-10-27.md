@@ -1,6 +1,6 @@
 # Paneles ajustables y listas PDF · 27/10/2026
 
-Implementado y comprobado en local; pendiente de despliegue.
+Desplegado y verificado en producción con el paquete `caaeb9e3056f`: 139 pruebas PostgreSQL aprobadas, ambos PDF comprobados y datos conservados. Ver detalle en [cotas y altura](cotas-altura-2026-10-27.md).
 
 ## Uso
 

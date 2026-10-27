@@ -59,13 +59,14 @@
         <div class="toolbar-group"><button id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button><span class="toolbar-separator"></span><label><input type="checkbox" id="snap" checked> Ajustar a 0,50 m</label><label><input type="checkbox" id="dimensions" checked> Medidas</label></div>
         <div class="toolbar-group"><button id="zoom-out" aria-label="Alejar" title="Alejar el plano">− Alejar</button><span id="zoom-label" role="status" aria-label="Nivel de zoom">100%</span><button id="zoom-in" aria-label="Acercar" title="Acercar el plano">＋ Acercar</button><button id="fit" title="Centrar todo el croquis">Centrar</button><button id="pan-view" data-tool="pan" aria-pressed="false" title="Arrastrar para mover la vista">Mover vista</button></div>
       </div>
-      <div class="drawing-area">
+      <div class="drawing-area" id="drawing-area">
         <svg id="canvas" viewBox="-2 -2 16 12" role="img" aria-label="Lienzo de croquis interactivo. Use las herramientas y los campos de medidas para editar.">
           <defs><pattern id="grid" width="0.5" height="0.5" patternUnits="userSpaceOnUse"><path d="M 0.5 0 L 0 0 L 0 0.5" fill="none" stroke="#7d9084" stroke-width="1" vector-effect="non-scaling-stroke"/></pattern></defs>
           <rect x="-200" y="-200" width="400" height="400" fill="url(#grid)"/>
           <g id="scene"></g><g id="modulation" pointer-events="none"></g><g id="measurements" pointer-events="none"></g><g id="preview" pointer-events="none"></g>
         </svg>
       </div>
+      <div id="canvas-height-resizer" class="canvas-height-resizer" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Altura del croquis" aria-controls="drawing-area" title="Arrastra hacia abajo para agrandar el croquis; doble clic para restablecer"><span aria-hidden="true">↕</span> Arrastra para ajustar la altura</div>
       <p id="tool-hint" class="canvas-help" aria-live="polite">Rueda del ratón para acercar o alejar. Arrastra el fondo para mover la vista.</p>
       <div class="under-canvas"><span><i class="green-dot"></i> <span id="geometry-summary">Croquis conceptual</span></span><span>Extremos editables · largos modulares de referencia</span></div>
       <div id="message" class="message" role="status" aria-live="polite" hidden></div>

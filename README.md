@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: 27 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados. La versión `907a291106cc` está desplegada y verificada: preferencia de paños visible, puertas ajustables, descargas e importación de proyectos, lista unificada de Proyectos, zoom con rueda y desplazamiento, cuadrícula de mayor contraste y columnas independientes contabilizadas. Ver las [comprobaciones y el resultado del despliegue](docs/exportar-importar-proyectos-2026-10-26.md). No sustituye la revisión profesional de la construcción. El [selector PDF/PNG](docs/descarga-pdf-png-2026-10-27.md) está comprobado en local y pendiente de aplicar su paquete al servidor.
+**Estado: 27 de octubre de 2026.** Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados. La versión `caaeb9e3056f` está desplegada y verificada: preferencia de paños visible, puertas ajustables, descargas e importación de proyectos, lista unificada de Proyectos, zoom con rueda y desplazamiento, cuadrícula de mayor contraste y columnas independientes contabilizadas. Ver las [comprobaciones y el resultado del despliegue](docs/exportar-importar-proyectos-2026-10-26.md). No sustituye la revisión profesional de la construcción. El selector PDF/PNG, los paneles laterales ajustables y las listas PDF con/sin precios ya están en producción. Las [cotas reforzadas y la altura ajustable del lienzo](docs/cotas-altura-2026-10-27.md) están comprobadas en local, pendientes de aplicar al servidor.
 
 ## Qué se puede probar
 
@@ -17,7 +17,7 @@ Prototipo web para dibujar croquis de casas, vincular objetos con artículos de 
 - Vincular varios artículos a un objeto: cantidad por m² neto, metro lineal o cantidad fija por objeto, con desperdicio configurable.
 - Calcular en el servidor, descontando aberturas del área de pared, con desglose y descarga CSV.
 - Guardar croquis, guardar copias, crear plantillas de croquis y de paredes; deshacer y rehacer durante la sesión.
-- [Ajustar el ancho de paneles y descargar listas de materiales PDF con o sin precios](docs/paneles-materiales-pdf-2026-10-27.md) (comprobado en local, pendiente de despliegue).
+- [Ajustar el ancho de paneles y descargar listas de materiales PDF con o sin precios](docs/paneles-materiales-pdf-2026-10-27.md) (desplegado en producción).
 - Descargar el croquis completo como PDF o PNG y un archivo de proyecto editable; [subirlo como copia para continuar](docs/exportar-importar-proyectos-2026-10-26.md).
 - Recuperar croquis, plantillas personales y cálculos en una sola lista de **Proyectos**, con búsqueda y permisos por usuario.
 
