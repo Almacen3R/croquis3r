@@ -15,6 +15,7 @@ urlpatterns = [
     path("health/", views.health, name="health"),
     path("api/catalog/", views.catalog, name="catalog"),
     path("api/export-pdf/", views.export_pdf, name="export-pdf"),
+    path("api/export-materials-pdf/", views.export_materials_pdf, name="export-materials-pdf"),
     path("api/estimate/", views.estimate, name="estimate"),
     path("api/ticoblock-estimate/", views.ticoblock_estimate, name="ticoblock-estimate"),
     path("api/suggest-panels/", views.panel_suggestion, name="panel-suggestion"),

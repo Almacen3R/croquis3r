@@ -13,6 +13,48 @@ MAX_PNG_BYTES = 8 * 1024 * 1024
 MAX_SIDE = 2400
 
 
+def materials_pdf(title, rows, pricing=None, warnings=()):
+    """Render trusted, recalculated quantities; prices never come from the browser."""
+    from xml.sax.saxutils import escape
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    styles = getSampleStyleSheet()
+    output = BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=A4, rightMargin=32, leftMargin=32,
+                            topMargin=32, bottomMargin=32, title=title, author='Croquis3R')
+    para = lambda text: Paragraph(escape(str(text)), styles['Normal'])
+    story = [Paragraph('Croquis3R · Lista de materiales', styles['Title']), para(title), Spacer(1, 12)]
+    priced = pricing is not None
+    money = lambda value: 'Pendiente' if value is None else f'{value:,.2f}'
+    headers = ['Material', 'Unidad', 'Cantidad'] + (['Precio CRC', 'Importe CRC'] if priced else [])
+    data = [[para(value) for value in headers]]
+    for row in rows:
+        description = row['name']
+        if priced and row.get('reason'):
+            description += ' · ' + row['reason']
+        values = [description, row['unit'], 'Pendiente' if row['quantity'] is None else row['quantity']]
+        if priced:
+            values += [money(row.get('unit_price')), money(row.get('amount'))]
+        data.append([para(value) for value in values])
+    table = Table(data, colWidths=[190, 83, 70, 88, 100] if priced else [365, 85, 81], repeatRows=1)
+    table.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8efdf')),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'), ('BOTTOMPADDING', (0,0), (-1,-1), 9),
+        ('TOPPADDING', (0,0), (-1,-1), 9), ('LINEBELOW', (0,0), (-1,-1), .3, colors.lightgrey)]))
+    story += [table, Spacer(1, 14)]
+    if priced:
+        label = 'Total de artículos listados' if pricing.get('complete') else 'Subtotal parcial con precio'
+        story += [para(f"{label}: CRC {money(pricing.get('subtotal_with_prices'))}"),
+                  para('Importes finales con IVA. Los pendientes no se incluyen en el subtotal.'),
+                  para(f"Consulta de precios: {pricing.get('fetched_display') or 'no disponible'}"),
+                  para(pricing.get('notice', ''))]
+    story += [Spacer(1, 12), para('Estimación de materiales TicoBlock para revisión; no incluye todos los materiales de la casa.')]
+    story += [para(warning) for warning in warnings]
+    doc.build(story)
+    output.seek(0)
+    return output
+
+
 def drawing_pdf(upload, title):
     if upload is None or not 0 < upload.size <= MAX_PNG_BYTES:
         raise InvalidDocument('La imagen del croquis debe ser PNG y pesar como máximo 8 MB.')

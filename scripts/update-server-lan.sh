@@ -213,6 +213,10 @@ with transaction.atomic():
         'image':SimpleUploadedFile('croquis.png',image_data.getvalue(),'image/png')},HTTP_X_CSRFTOKEN=token)
     assert pdf.status_code==200 and pdf['Content-Type']=='application/pdf'
     assert b''.join(pdf.streaming_content).startswith(b'%PDF-')
+    for with_prices in (False,True):
+        listing=writer.post('/api/export-materials-pdf/',json.dumps({**body,'with_prices':with_prices}),**kwargs)
+        assert listing.status_code==200 and listing['Content-Type']=='application/pdf'
+        assert b''.join(listing.streaming_content).startswith(b'%PDF-')
     assert f'?sketch={pk}' in writer.get('/atenciones/').content.decode()
     result=writer.put(f'/api/sketches/{pk}/',json.dumps({**body,'revision':1}),**kwargs)
     assert result.status_code==200 and result.json()['revision']==2

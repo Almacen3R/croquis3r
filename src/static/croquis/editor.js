@@ -4,6 +4,8 @@ const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta
 const {packProject, projectFilename, downloadBlob, drawingPng, pdfFromPng} = await import(`./project-files.mjs${new URL(import.meta.url).search}`);
 
 const $ = id => document.getElementById(id);
+const {setupPanels}=await import(`./panels.mjs${new URL(import.meta.url).search}`);
+setupPanels(document.querySelector('.workspace'));
 const svg = $('canvas');
 const NS = 'http://www.w3.org/2000/svg';
 const state = {document: {version: 1, objects: []}, selected: null, tool: 'select', start: null,
@@ -598,13 +600,27 @@ $('download-project').onclick=action(()=>{
 function requestDownloadFormat() {
   const dialog=$('download-dialog');dialog.returnValue='';dialog.showModal();
   return new Promise(resolve=>dialog.addEventListener('close',()=>resolve(
-    ['pdf','png'].includes(dialog.returnValue)?dialog.returnValue:null),{once:true}));
+    ['pdf','png','materials-priced','materials-plain'].includes(dialog.returnValue)?dialog.returnValue:null),{once:true}));
 }
 $('download-image').onclick=action(async()=>{
   if(!allObjects().length)throw new Error('Dibuja un objeto antes de descargar el croquis.');
   const format=await requestDownloadFormat();if(!format)return;
   const button=$('download-image'),name=$('project-name').value.trim()||'Croquis sin nombre';downloadInProgress=true;button.disabled=true;button.textContent='Preparando…';
   try {
+    if(format.startsWith('materials-')) {
+      if(settingsDirty)throw new Error('Aplica la configuración pendiente antes de descargar materiales.');
+      const cookieName=document.querySelector('meta[name="csrf-cookie-name"]').content;
+      const response=await fetch('/api/export-materials-pdf/',{method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRFToken':cookieValue(document.cookie,cookieName)},
+        body:JSON.stringify({name,document:snapshot(),with_prices:format==='materials-priced'})});
+      if(!response.ok) {
+        const details=await response.json().catch(()=>null);
+        throw new Error(details?.error||'No se pudo descargar la lista. Revisa tu sesión e intenta de nuevo.');
+      }
+      if(!response.headers.get('Content-Type')?.startsWith('application/pdf'))throw new Error('El servidor no devolvió un PDF. Revisa tu sesión.');
+      downloadBlob(await response.blob(),projectFilename(name,format==='materials-priced'?'-materiales-con-precios.pdf':'-materiales-sin-precios.pdf'));
+      message('Lista de materiales descargada en PDF.');return;
+    }
     const original=state.selected;let image;
     try {
       state.selected=null;render();

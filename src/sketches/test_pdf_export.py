@@ -1,4 +1,6 @@
 from io import BytesIO
+import json
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -21,6 +23,44 @@ class PdfExportTests(TestCase):
     def setUp(self):
         self.user=get_user_model().objects.create_user('exportador_pdf')
         self.client.force_login(self.user)
+
+    def test_materials_recalculates_and_never_looks_up_prices_for_unpriced_copy(self):
+        from .test_modulation import doc, wall
+        from .pdf_export import materials_pdf
+        data={'name':'Casa <Pablo>', 'document':doc(wall()), 'with_prices':False,
+              'rows':[{'name':'Inventado', 'quantity':999999}]}
+        with patch('sketches.views.quote') as quote, patch('sketches.views.materials_pdf', wraps=materials_pdf) as render:
+            response=self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json')
+            self.assertEqual(response.status_code,200)
+            self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
+            quote.assert_not_called()
+            self.assertIsNone(render.call_args.kwargs['pricing'])
+            self.assertFalse(any(row['name']=='Inventado' for row in render.call_args.args[1]))
+        data['with_prices']=True
+        response=self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json')
+        self.assertEqual(response.status_code,200)
+        self.assertIn('con-precios.pdf',response['Content-Disposition'])
+        self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
+        self.assertEqual(Sketch.objects.count(),0)
+        with patch('sketches.views.quote', return_value={'complete':False,'subtotal_with_prices':123,
+                'rows':[{'name':'Precio del servidor','unit':'unidades','quantity':1,
+                         'unit_price':123,'amount':123}]}) as quote:
+            response=self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json')
+            self.assertEqual(response.status_code,200)
+            self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
+            quote.assert_called_once()
+
+    def test_materials_rejects_invalid_document_and_requires_authentication(self):
+        data={'name':'Casa','document':{'version':1,'objects':[]},'with_prices':'yes'}
+        self.assertEqual(self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json').status_code,400)
+        protected=Client(enforce_csrf_checks=True)
+        protected.force_login(self.user)
+        self.assertEqual(protected.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json').status_code,403)
+        data['with_prices']=False
+        data['document']={'broken':True}
+        self.assertEqual(self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json').status_code,400)
+        self.client.logout()
+        self.assertEqual(self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json').status_code,403)
 
     def test_pdf_download_is_a_binary_attachment_without_saving_projects(self):
         for size in ((600,400),(400,600)):

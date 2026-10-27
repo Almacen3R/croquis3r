@@ -22,7 +22,7 @@ from .domain import validate_door_catalog, InvalidDocument, calculate, positive_
 from .models import ObjectTemplate, Sketch, Attention
 from .access import visible_to
 from .project_files import read_project
-from .pdf_export import drawing_pdf
+from .pdf_export import drawing_pdf, materials_pdf
 from .attention import load_attention, saved_inputs, save_attention
 from .house_calculator import HouseCalculatorForm, RECIPES, VERSION, calculate_house
 from .modulation import calculate_modulation
@@ -75,7 +75,7 @@ def editor(request):
     if not authorized(request):
         return redirect_to_login(request.get_full_path())
     assets = settings.BASE_DIR / "src/static/croquis"
-    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs", "http.mjs", "project-files.mjs"))
+    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs", "http.mjs", "project-files.mjs", "panels.mjs"))
     return render(request, "sketches/editor.html", {"editor_asset_version": str(version),
         "csrf_cookie_name": settings.CSRF_COOKIE_NAME})
 
@@ -227,6 +227,31 @@ def export_pdf(request):
     output = drawing_pdf(request.FILES.get('image'), title)
     response = FileResponse(output, content_type='application/pdf', as_attachment=True,
                             filename=(slugify(title)[:80] or 'croquis3r') + '.pdf')
+    response['Cache-Control'] = 'no-store'
+    return response
+
+
+@require_http_methods(['POST'])
+@api
+def export_materials_pdf(request):
+    data = payload(request)
+    title = name(data)
+    with_prices = data.get('with_prices', False)
+    if type(with_prices) is not bool:
+        raise InvalidDocument('El indicador de precios debe ser booleano.')
+    result = calculate_modulation(data.get('document'), articles_by_id())
+    if result['status'] != 'ready':
+        raise InvalidDocument('Completa la configuración y corrige los avisos de materiales antes de descargar la lista.')
+    rows = sketch_rows(result)
+    rows = [row for row in rows if row['quantity'] is None or row['quantity'] > 0]
+    pricing = quote(rows) if with_prices else None
+    if with_prices and pricing is None:
+        pricing = {'complete': False, 'subtotal_with_prices': None}
+    output = materials_pdf(title, pricing.get('rows', rows) if pricing else rows,
+                           pricing=pricing, warnings=result.get('warnings', []))
+    suffix = '-materiales-con-precios' if with_prices else '-materiales-sin-precios'
+    response = FileResponse(output, content_type='application/pdf', as_attachment=True,
+                            filename=(slugify(title)[:65] or 'croquis3r') + suffix + '.pdf')
     response['Cache-Control'] = 'no-store'
     return response
 

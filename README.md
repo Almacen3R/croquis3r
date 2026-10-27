@@ -17,6 +17,7 @@ Prototipo web para dibujar croquis de casas, vincular objetos con artículos de 
 - Vincular varios artículos a un objeto: cantidad por m² neto, metro lineal o cantidad fija por objeto, con desperdicio configurable.
 - Calcular en el servidor, descontando aberturas del área de pared, con desglose y descarga CSV.
 - Guardar croquis, guardar copias, crear plantillas de croquis y de paredes; deshacer y rehacer durante la sesión.
+- [Ajustar el ancho de paneles y descargar listas de materiales PDF con o sin precios](docs/paneles-materiales-pdf-2026-10-27.md) (comprobado en local, pendiente de despliegue).
 - Descargar el croquis completo como PDF o PNG y un archivo de proyecto editable; [subirlo como copia para continuar](docs/exportar-importar-proyectos-2026-10-26.md).
 - Recuperar croquis, plantillas personales y cálculos en una sola lista de **Proyectos**, con búsqueda y permisos por usuario.
 
