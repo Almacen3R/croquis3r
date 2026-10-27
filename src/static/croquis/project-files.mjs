@@ -22,6 +22,24 @@ export function downloadBlob(blob, filename) {
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
+export async function pdfFromPng(png, name, csrfToken, fetcher=fetch) {
+  const body=new FormData();body.append('name',name);body.append('image',png,'croquis.png');
+  let response;
+  try {
+    response=await fetcher('/api/export-pdf/',{method:'POST',credentials:'same-origin',
+      headers:{'X-CSRFToken':csrfToken},body});
+  } catch {
+    throw new Error('No se pudo conectar para preparar el PDF. Tu croquis sigue abierto; vuelve a intentar o elige PNG.');
+  }
+  if(!response.ok) {
+    const details=await response.json().catch(()=>null);
+    if(response.status===401||response.status===403)throw new Error('Inicia sesión en otra pestaña y vuelve a descargar el PDF aquí, sin cerrar tu dibujo.');
+    throw new Error(details?.error || `No se pudo preparar el PDF (${response.status}). Puedes volver a intentar o elegir PNG.`);
+  }
+  if(!response.headers.get('Content-Type')?.startsWith('application/pdf'))throw new Error('El servidor no devolvió un PDF. Revisa tu sesión y vuelve a intentar.');
+  return response.blob();
+}
+
 export async function drawingPng(svg, title, description) {
   const ns='http://www.w3.org/2000/svg',copy=svg.cloneNode(true);
   copy.setAttribute('xmlns',ns);copy.setAttribute('font-family','Arial, sans-serif');

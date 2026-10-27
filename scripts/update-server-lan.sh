@@ -165,6 +165,8 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db import transaction
 from django.core.files.uploadedfile import SimpleUploadedFile
+from io import BytesIO
+from PIL import Image
 from sketches.models import Sketch
 import json
 c=Client(HTTP_HOST='192.168.0.214:8013')
@@ -205,6 +207,12 @@ with transaction.atomic():
     materials=calculated.json()
     assert materials['status']=='ready' and materials['standalone_column_count']==1
     assert next(row['quantity'] for row in materials['items'] if row['name']=='Columna C · lineal')==1
+    image_data=BytesIO()
+    Image.new('RGB',(1200,800),'white').save(image_data,format='PNG')
+    pdf=writer.post('/api/export-pdf/',{'name':'Prueba de descarga PDF',
+        'image':SimpleUploadedFile('croquis.png',image_data.getvalue(),'image/png')},HTTP_X_CSRFTOKEN=token)
+    assert pdf.status_code==200 and pdf['Content-Type']=='application/pdf'
+    assert b''.join(pdf.streaming_content).startswith(b'%PDF-')
     assert f'?sketch={pk}' in writer.get('/atenciones/').content.decode()
     result=writer.put(f'/api/sketches/{pk}/',json.dumps({**body,'revision':1}),**kwargs)
     assert result.status_code==200 and result.json()['revision']==2
@@ -224,7 +232,7 @@ assert not Sketch.objects.filter(pk=imported_pk).exists()
 assert c.get('/salir/').status_code==405
 assert c.post('/salir/').status_code==302
 assert c.get('/api/sketches/').status_code==403
-print('Editor, calculador, proyectos, columnas independientes, guardado e importación con CSRF y cierre de sesión: OK.')
+print('Editor, calculador, proyectos, columnas independientes, descarga PDF, guardado e importación con CSRF y cierre de sesión: OK.')
 PY
 capture_business > "$backup/business-after.json"
 python3 - "$backup" <<'PY'

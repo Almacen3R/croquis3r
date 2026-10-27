@@ -10,6 +10,8 @@ from django.db.models import Q, F, Value, BooleanField
 from django.core.paginator import Paginator
 from django.urls import reverse
 from django.http import Http404
+from django.http import FileResponse
+from django.utils.text import slugify
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods
@@ -20,6 +22,7 @@ from .domain import validate_door_catalog, InvalidDocument, calculate, positive_
 from .models import ObjectTemplate, Sketch, Attention
 from .access import visible_to
 from .project_files import read_project
+from .pdf_export import drawing_pdf
 from .attention import load_attention, saved_inputs, save_attention
 from .house_calculator import HouseCalculatorForm, RECIPES, VERSION, calculate_house
 from .modulation import calculate_modulation
@@ -215,6 +218,17 @@ def health(request):
 def catalog(request):
     return JsonResponse({"articles": [{"id": a.id, "sku": a.sku, "name": a.name,
         "unit": a.unit, "is_demo": a.is_demo} for a in get_catalog_provider().articles()]})
+
+
+@require_http_methods(['POST'])
+@api
+def export_pdf(request):
+    title = name(request.POST)
+    output = drawing_pdf(request.FILES.get('image'), title)
+    response = FileResponse(output, content_type='application/pdf', as_attachment=True,
+                            filename=(slugify(title)[:80] or 'croquis3r') + '.pdf')
+    response['Cache-Control'] = 'no-store'
+    return response
 
 
 @require_http_methods(["POST"])

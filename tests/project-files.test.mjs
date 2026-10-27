@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {packProject,projectFilename} from '../src/static/croquis/project-files.mjs';
+import {packProject,projectFilename,pdfFromPng} from '../src/static/croquis/project-files.mjs';
 
 test('el archivo conserva el documento completo y solo incluye SKU utilizados',()=>{
   const doc={version:1,objects:[{id:'p',kind:'door',door_rotation:3,assignments:[{article_id:4,factor:'2'}]}],
@@ -25,4 +25,23 @@ test('nombres de descarga no incluyen rutas y conservan extensión reconocible',
 
 test('no descarga archivos que superan el tamaño admitido al importar',()=>{
   assert.throws(()=>packProject('Casa',{version:1,objects:[{label:'x'.repeat(1048576)}]},[]),/1 MB/);
+});
+
+test('la descarga PDF envía solo la lámina con sesión y CSRF y recibe un archivo binario',async()=>{
+  const image=new Blob(['PNG'],{type:'image/png'});
+  const result=await pdfFromPng(image,'Casa','csrf-propio',async(url,options)=>{
+    assert.equal(url,'/api/export-pdf/');assert.equal(options.method,'POST');
+    assert.equal(options.credentials,'same-origin');assert.equal(options.headers['X-CSRFToken'],'csrf-propio');
+    assert.equal(options.body.get('name'),'Casa');assert.equal(options.body.get('image').type,'image/png');
+    return new Response('%PDF-test',{status:200,headers:{'Content-Type':'application/pdf'}});
+  });
+  assert.equal(await result.text(),'%PDF-test');
+});
+
+test('fallos de PDF no se descargan como si fueran archivos correctos',async()=>{
+  const image=new Blob(['PNG']);
+  await assert.rejects(pdfFromPng(image,'Casa','',async()=>new Response('login',{status:403})),/sesión/);
+  await assert.rejects(pdfFromPng(image,'Casa','',async()=>new Response('<html>Login</html>',{status:200,headers:{'Content-Type':'text/html'}})),/no devolvió un PDF/);
+  await assert.rejects(pdfFromPng(image,'Casa','',async()=>{throw new Error('offline');}),/sigue abierto/);
+  await assert.rejects(pdfFromPng(image,'Casa','',async()=>new Response(JSON.stringify({error:'Imagen inválida'}),{status:400})),/Imagen inválida/);
 });

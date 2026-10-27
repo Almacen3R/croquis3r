@@ -1,7 +1,7 @@
 const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea, zoomView} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
 const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta.url).search}`);
 
-const {packProject, projectFilename, downloadBlob, drawingPng} = await import(`./project-files.mjs${new URL(import.meta.url).search}`);
+const {packProject, projectFilename, downloadBlob, drawingPng, pdfFromPng} = await import(`./project-files.mjs${new URL(import.meta.url).search}`);
 
 const $ = id => document.getElementById(id);
 const svg = $('canvas');
@@ -12,6 +12,7 @@ const state = {document: {version: 1, objects: []}, selected: null, tool: 'selec
 let drag = null;
 let panDrag = null;
 let settingsDirty = false;
+let downloadInProgress = false;
 const walls = () => state.document.objects.filter(o => o.kind === 'wall');
 const allObjects = () => [...state.document.objects,...(state.document.columns||[])];
 const selected = () => allObjects().find(o => o.id === state.selected);
@@ -142,6 +143,7 @@ function render() {
       shape('rect',{x:(points.x1+points.x2)/2-.065,y:(points.y1+points.y2)/2-.065,width:.13,height:.13,rx:.025,fill:'#c48b4a',stroke:'#fff','stroke-width':.015},grip);
     }
   }
+  $('download-image').disabled = downloadInProgress || !allObjects().length;
   $('object-count').textContent = `${allObjects().length} objetos`;
   const footprint=floorArea(walls());
   $('area-summary').textContent=footprint.area===null?'Área de la casa: cierra el contorno para calcularla':`${footprint.partial?'Área cerrada parcial':'Área de la casa'}: ${fmt(footprint.area)} m²`;
@@ -593,16 +595,27 @@ $('download-project').onclick=action(()=>{
   downloadBlob(new Blob([packProject(name,exported,state.articles)],{type:'application/json;charset=utf-8'}),projectFilename(name,'.croquis3r.json'));
   message('Proyecto descargado. Puedes subir este archivo desde Proyectos para continuar como una copia.');
 });
+function requestDownloadFormat() {
+  const dialog=$('download-dialog');dialog.returnValue='';dialog.showModal();
+  return new Promise(resolve=>dialog.addEventListener('close',()=>resolve(
+    ['pdf','png'].includes(dialog.returnValue)?dialog.returnValue:null),{once:true}));
+}
 $('download-image').onclick=action(async()=>{
-  const button=$('download-image');button.disabled=true;
-  const original=state.selected;
+  if(!allObjects().length)throw new Error('Dibuja un objeto antes de descargar el croquis.');
+  const format=await requestDownloadFormat();if(!format)return;
+  const button=$('download-image'),name=$('project-name').value.trim()||'Croquis sin nombre';downloadInProgress=true;button.disabled=true;button.textContent='Preparando…';
   try {
-    if(!allObjects().length)throw new Error('Dibuja un objeto antes de descargar la imagen.');
-    state.selected=null;render();
-    const blob=await drawingPng(svg,$('project-name').value,$('area-summary').textContent);
-    downloadBlob(blob,projectFilename($('project-name').value,'.png'));
-    message('Imagen PNG descargada con el croquis completo. Para continuar editando, descarga también el proyecto.');
-  } finally {state.selected=original;render();button.disabled=false;}
+    const original=state.selected;let image;
+    try {
+      state.selected=null;render();
+      image=drawingPng(svg,name,$('area-summary').textContent);
+    } finally {state.selected=original;render();}
+    const png=await image;
+    const csrfName=document.querySelector('meta[name="csrf-cookie-name"]').content;
+    const blob=format==='pdf'?await pdfFromPng(png,name,cookieValue(document.cookie,csrfName)):png;
+    downloadBlob(blob,projectFilename(name,`.${format}`));
+    message(`Croquis descargado en ${format.toUpperCase()}. Para continuar editando, descarga también el proyecto.`);
+  } finally {downloadInProgress=false;button.disabled=!allObjects().length;button.textContent='Descargar';}
 });
 $('export-csv').onclick=()=>{
   if(!state.estimate)return;
@@ -613,7 +626,7 @@ $('export-csv').onclick=()=>{
   const a=element('a',{href:url,download:'croquis3r-materiales-ticoblock.csv'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 window.addEventListener('keydown',event=>{
-  if(['INPUT','SELECT','TEXTAREA'].includes(event.target.tagName)||$('name-dialog').open)return;
+  if(['INPUT','SELECT','TEXTAREA'].includes(event.target.tagName)||$('name-dialog').open||$('download-dialog').open)return;
   if(event.key==='Escape'){if(drag){state.document=drag.before;drag=null;render();}setTool('select');}
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();$(event.shiftKey?'redo':'undo').click();}
   else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){event.preventDefault();$('redo').click();}

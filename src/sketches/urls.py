@@ -14,6 +14,7 @@ urlpatterns = [
     path("calculador-casas/plantillas/<slug:slug>/", views.house_template_detail, name="house-template-detail"),
     path("health/", views.health, name="health"),
     path("api/catalog/", views.catalog, name="catalog"),
+    path("api/export-pdf/", views.export_pdf, name="export-pdf"),
     path("api/estimate/", views.estimate, name="estimate"),
     path("api/ticoblock-estimate/", views.ticoblock_estimate, name="ticoblock-estimate"),
     path("api/suggest-panels/", views.panel_suggestion, name="panel-suggestion"),

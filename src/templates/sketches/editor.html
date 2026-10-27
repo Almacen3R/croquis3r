@@ -53,7 +53,7 @@
     </aside>
 
     <main class="main">
-      <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><div class="image-actions"><span id="object-count" class="count-badge">0 objetos</span><button id="download-image" class="secondary">↓ Descargar imagen PNG</button></div></div>
+      <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><div class="image-actions"><span id="object-count" class="count-badge">0 objetos</span><button id="download-image" class="secondary" disabled>Descargar</button></div></div>
       <div class="canvas-toolbar">
         <div class="toolbar-group"><button id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button><span class="toolbar-separator"></span><label><input type="checkbox" id="snap" checked> Ajustar a 0,50 m</label><label><input type="checkbox" id="dimensions" checked> Medidas</label></div>
         <div class="toolbar-group"><button id="zoom-out" aria-label="Alejar" title="Alejar el plano">− Alejar</button><span id="zoom-label" role="status" aria-label="Nivel de zoom">100%</span><button id="zoom-in" aria-label="Acercar" title="Acercar el plano">＋ Acercar</button><button id="fit" title="Centrar todo el croquis">Centrar</button><button id="pan-view" data-tool="pan" aria-pressed="false" title="Arrastrar para mover la vista">Mover vista</button></div>
@@ -111,6 +111,7 @@
       <div class="demo-notice"><strong>ESTIMACIÓN SEGÚN MODULADOR</strong><p>12 cm: alturas de 2,50, 2,70 o 2,90 m. 10 cm: solo 2,50 m y sin vigas de bloques. Las marcas de paños son propuestas; los tipos de columna requieren confirmación. No incluye todos los materiales de la casa ni consulta existencias. Los precios disponibles se muestran por separado; los pendientes no se cotizan.</p></div>
     </aside>
   </div>
+  <dialog id="download-dialog" aria-labelledby="download-title"><form method="dialog"><h2 id="download-title">Descargar croquis</h2><p>¿En qué formato quieres descargarlo?</p><div class="download-formats"><button value="pdf" class="primary">PDF</button><button value="png" class="secondary">PNG</button></div><div class="dialog-actions"><button value="cancel">Cancelar</button></div></form></dialog>
   <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">Guardar plantilla</h2><label class="field-label" for="dialog-name">Nombre</label><input id="dialog-name" maxlength="100" required><div class="dialog-actions"><button value="cancel" formnovalidate>Cancelar</button><button value="save" class="primary">Guardar</button></div></form></dialog>
 </body>
 </html>

@@ -11,7 +11,7 @@ def inventory():
     packages = {}
     for name in ('Django', 'asgiref', 'gunicorn', 'packaging', 'psycopg', 'psycopg-binary',
                  'pymssql', 'python-dotenv', 'sqlparse', 'typing_extensions', 'tzdata',
-                 'whitenoise', 'pip'):
+                 'whitenoise', 'pip', 'reportlab', 'Pillow', 'charset-normalizer'):
         try:
             packages[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
@@ -30,7 +30,8 @@ def main():
         floors = {(3, 12): '3.12.15', (3, 13): '3.13.17', (3, 14): '3.14.9', (3, 15): '3.15.1'}
         floor = floors.get(version.release[:2])
         assert floor and version >= Version(floor), 'Python requiere parche de seguridad o revisión de su serie.'
-        expected = {'Django': '5.2.18', 'asgiref': '3.13.0', 'pymssql': '2.4.5', 'pip': '26.2.2'}
+        expected = {'Django': '5.2.18', 'asgiref': '3.13.0', 'pymssql': '2.4.5', 'pip': '26.2.2',
+                    'reportlab': '5.1.0', 'Pillow': '13.0.0', 'charset-normalizer': '3.5.2'}
         if sys.platform != 'win32':
             expected['gunicorn'] = '26.2.2'
         for name, version in expected.items():

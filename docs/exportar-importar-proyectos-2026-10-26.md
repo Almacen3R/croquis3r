@@ -1,5 +1,7 @@
 # Descargas, importación y Proyectos — 26-10-2026
 
+Actualización del 27-10-2026: el botón de la lámina pasa a **Descargar**, con elección [PDF o PNG](descarga-pdf-png-2026-10-27.md). El archivo de proyecto editable y su importación mantienen el mismo formato.
+
 ## Diseño implementado
 
 Se separan dos archivos con propósitos distintos:
