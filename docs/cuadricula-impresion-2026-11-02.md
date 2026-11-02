@@ -8,6 +8,10 @@ Comprobado en local; pendiente de despliegue.
 - Se agregó estilo de impresión de la página: oculta paneles, herramientas, cuadrícula y textos externos al lienzo. Para una lámina del dibujo completo se mantiene la descarga PDF, independiente del zoom en pantalla.
 - No hay migraciones ni cambios de dependencias.
 
+## Controles de altura visibles
+
+Se agregaron **Más alto** y **Menos alto** en la barra superior. Ajustan la altura en pasos de 80 px y se deshabilitan al alcanzar el máximo/mínimo; comparten la preferencia guardada con la franja inferior. Comprobados en navegador (465 → 545 → 465 px), sin cambiar revisión ni medidas.
+
 ## Uso de la altura existente
 
 La franja **Arrastra para ajustar la altura** está debajo del lienzo; desplazar la página hacia abajo si no está visible. Arrastrar verticalmente; doble clic restaura la altura automática. El ejecutor de la versión `9a9e259fb0a1` confirmó en el servidor Result=success y ExecMainStatus=0 el 02/11/2026; esa funcionalidad ya está aplicada.

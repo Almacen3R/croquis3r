@@ -40,6 +40,7 @@ export function setupPanels(workspace) {
 function setupCanvasHeight(workspace) {
   const area=workspace.querySelector('#drawing-area'), handle=workspace.querySelector('#canvas-height-resizer');
   const key='croquis3r-canvas-height', min=320, max=1600;
+  const shorter=workspace.querySelector('#canvas-shorter'), taller=workspace.querySelector('#canvas-taller');
   let height=null, drag=null;
   try {const saved=Number(localStorage.getItem(key));if(Number.isFinite(saved)&&saved>=min)height=saved;}catch{}
   const apply=()=>{
@@ -47,8 +48,13 @@ function setupCanvasHeight(workspace) {
     else area.style.removeProperty('height');
     handle.setAttribute('aria-valuemin',min);handle.setAttribute('aria-valuemax',max);
     handle.setAttribute('aria-valuenow',Math.round(area.getBoundingClientRect().height));
+    const current=area.getBoundingClientRect().height;
+    shorter.disabled=current<=min;taller.disabled=current>=max;
   };
   const save=()=>{try {if(height===null)localStorage.removeItem(key);else localStorage.setItem(key,String(height));}catch{}};
+  const changeHeight=amount=>{height=area.getBoundingClientRect().height+amount;apply();save();};
+  shorter.addEventListener('click',()=>changeHeight(-80));
+  taller.addEventListener('click',()=>changeHeight(80));
   handle.addEventListener('pointerdown',event=>{
     if(event.button!==0)return;event.preventDefault();
     drag={y:event.clientY,height:area.getBoundingClientRect().height};handle.setPointerCapture(event.pointerId);
