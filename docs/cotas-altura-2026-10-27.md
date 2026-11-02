@@ -1,6 +1,6 @@
 # Cotas legibles y altura del lienzo · 27/10/2026
 
-Implementado y validado localmente; pendiente de aplicar al servidor.
+Desplegado como `9a9e259fb0a1`; ejecutor verificado el 02/11/2026 con Result=success y ExecMainStatus=0. La [actualización de impresión del 02/11](cuadricula-impresion-2026-11-02.md) reemplaza el fondo tenue por fondo blanco y elimina el pie de las descargas.
 
 - Cotas parciales: texto de 0,13 a 0,17 unidades SVG; totales: de 0,16 a 0,20. Arial en negrita (700), color oscuro y halo blanco para separar texto de la cuadrícula.
 - Líneas de cotas de 0,012 a 0,022; marcas de extremos de 0,014 a 0,026. Líneas auxiliares más oscuras y gruesas. Medidas de abertura seleccionada también reforzadas.

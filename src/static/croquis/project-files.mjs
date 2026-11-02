@@ -40,19 +40,20 @@ export async function pdfFromPng(png, name, csrfToken, fetcher=fetch) {
   return response.blob();
 }
 
-export async function drawingPng(svg, title, description) {
+export async function drawingPng(svg, title) {
   const ns='http://www.w3.org/2000/svg',copy=svg.cloneNode(true);
   copy.setAttribute('xmlns',ns);copy.setAttribute('font-family','Arial, sans-serif');
   copy.removeAttribute('class');copy.removeAttribute('style');
-  // On paper the grid stays in the background; dimensions retain their dark strokes.
-  copy.querySelector('#grid path')?.setAttribute('stroke-opacity','.35');
+  // Every exported drawing has a clean background, regardless of the screen preference.
+  copy.querySelector('#grid-background')?.remove();
+  copy.querySelector('#grid')?.remove();
   copy.querySelector('#preview')?.remove();
   copy.querySelectorAll('[data-endpoint],[data-handle]').forEach(node=>node.remove());
   const boxes=['scene','modulation','measurements'].map(id=>svg.querySelector(`#${id}`)).filter(g=>g?.childNodes.length).map(g=>g.getBBox());
   if(!boxes.length)throw new Error('Dibuja un croquis antes de descargar la imagen.');
   const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
   const w=Math.max(...boxes.map(b=>b.x+b.width))-x,h=Math.max(...boxes.map(b=>b.y+b.height))-y;
-  const width=Math.max(w+2,8),height=Math.max(h+3.2,5),left=x-1,top=y-1.6;
+  const width=Math.max(w+2,8),height=Math.max(h+2.4,5),left=x-1,top=y-1.6;
   copy.setAttribute('viewBox',`${left} ${top} ${width} ${height}`);
   const scale=2400/Math.max(width,height),pxW=Math.round(width*scale),pxH=Math.round(height*scale);
   copy.setAttribute('width',pxW);copy.setAttribute('height',pxH);
@@ -66,8 +67,6 @@ export async function drawingPng(svg, title, description) {
   };
   // Limitar el título mantiene su caja dentro de la lámina sin cortar texto.
   label(title.slice(0,65),top+.5,Math.min(.3,(width-.7)/Math.max(title.slice(0,65).length*.65,1)));
-  label(`Croquis3R · ${description}`,top+height-.6,.16);
-  label('Croquis conceptual · medidas modulares en metros · no es un plano constructivo',top+height-.3,.12);
   const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copy)],{type:'image/svg+xml;charset=utf-8'}));
   try {
     const image=new Image();

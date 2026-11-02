@@ -557,6 +557,13 @@ $('example').onclick=()=>{if(discardAllowed())example();};
 $('project-name').oninput=markDirty;
 $('tab-object').onclick=()=>tab('object');$('tab-materials').onclick=()=>tab('materials');
 $('recalculate').onclick=()=>estimate();$('dimensions').onchange=render;
+// Visual preference only: hiding the grid does not change snapping or the drawing.
+try {$('show-grid').checked=localStorage.getItem('croquis3r-show-grid')!=='false';}catch{}
+function updateGridVisibility() {
+  $('grid-background').style.display=$('show-grid').checked?'':'none';
+  try {localStorage.setItem('croquis3r-show-grid',String($('show-grid').checked));}catch{}
+}
+$('show-grid').onchange=updateGridVisibility;updateGridVisibility();
 $('show-panels').onchange=renderModulation;
 function setFamilyControls(){
   const narrow=$('house-thickness').value==='0.1';
@@ -624,7 +631,7 @@ $('download-image').onclick=action(async()=>{
     const original=state.selected;let image;
     try {
       state.selected=null;render();
-      image=drawingPng(svg,name,$('area-summary').textContent);
+      image=drawingPng(svg,name);
     } finally {state.selected=original;render();}
     const png=await image;
     const csrfName=document.querySelector('meta[name="csrf-cookie-name"]').content;
