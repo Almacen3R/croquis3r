@@ -8,10 +8,10 @@
   <title>Croquis3R · Editor de croquis</title>
   <link rel="stylesheet" href="{% static 'croquis/editor.css' %}?v={{ editor_asset_version }}">
   <script type="module" src="{% static 'croquis/editor.js' %}?v={{ editor_asset_version }}"></script>
-</head>
+{% include 'sketches/_brand_head.html' %}</head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{% url 'attentions' %}" aria-label="Croquis3R, inicio"><span class="brand-icon">▱</span> Croquis<span>3R</span></a>
+    {% include 'sketches/_brand.html' %}
     <span class="header-divider"></span><span class="product-label">ESTUDIO DE CROQUIS</span>
     <span class="prototype"><i></i> Prototipo · recetas TicoBlock</span>
     <a class="admin-link calculator-link" href="{% url 'house-calculator' %}">Calculador de casas ↗</a>

@@ -6,9 +6,9 @@
   <title>Croquis3R · Calculador de casas</title>
   <link rel="stylesheet" href="{% static 'croquis/house-calculator.css' %}?v=20261022-prices1">
   <script defer src="{% static 'croquis/house-calculator.js' %}?v=20261022-prices1"></script>
-</head>
+{% include 'sketches/_brand_head.html' %}</head>
 <body data-unsaved="{{ unsaved|yesno:'true,false' }}">
-  <header class="topbar"><a class="brand" href="{% url 'attentions' %}">▱ Croquis<span>3R</span></a>
+  <header class="topbar">{% include 'sketches/_brand.html' %}
     <nav aria-label="Secciones"><a href="{% url 'attentions' %}">Proyectos</a><a href="{% url 'editor' %}">Editor de croquis</a><a href="{% url 'house-calculator' %}" aria-current="page">Calculador de casas</a></nav>
     <span class="badge">Prototipo · recetas de TicoBlock</span>{% include 'sketches/_session.html' %}</header>
   <main>
