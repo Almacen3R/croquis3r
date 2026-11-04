@@ -1,6 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {packProject,projectFilename,pdfFromPng} from '../src/static/croquis/project-files.mjs';
+import {packProject,projectFilename,pdfFromPng,wrapObservations} from '../src/static/croquis/project-files.mjs';
+
+test('observaciones conservan párrafos y separan palabras largas sin perder contenido',()=>{
+  assert.deepEqual(wrapObservations('  José revisa\n\nPuerta <A> & B  ',12),['José revisa','','Puerta <A> &','B']);
+  const long='ABCDEFGHIJKLMNO';
+  assert.equal(wrapObservations(long,4).join(''),long);
+  assert.ok(wrapObservations(long,4).every(line=>line.length<=4));
+  assert.deepEqual(wrapObservations(' \n ',20),[]);
+  assert.ok(wrapObservations('WWWWWW',4,line=>line.length*2).every(line=>line.length<=2));
+  assert.throws(()=>wrapObservations('x'.repeat(1001),10),/1000/);
+  assert.throws(()=>wrapObservations('\n'.repeat(20),10),/20 renglones/);
+  assert.throws(()=>wrapObservations('x\u0000',10),/texto/);
+});
 
 test('el archivo conserva el documento completo y solo incluye SKU utilizados',()=>{
   const doc={version:1,objects:[{id:'p',kind:'door',door_rotation:3,assignments:[{article_id:4,factor:'2'}]}],

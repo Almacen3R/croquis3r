@@ -40,7 +40,26 @@ export async function pdfFromPng(png, name, csrfToken, fetcher=fetch) {
   return response.blob();
 }
 
-export async function drawingPng(svg, title) {
+export function wrapObservations(text, maxWidth, measure=line=>Array.from(line).length) {
+  if(typeof text!=='string'||text.length>1000||text.split(/\r\n?|\n/).length>20||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(text))throw new Error('Observaciones admite hasta 1000 caracteres y 20 renglones de texto.');
+  if(!text.trim())return [];
+  const lines=[];
+  for(const paragraph of text.trim().split(/\r\n?|\n/)) {
+    let line='';
+    for(const word of paragraph.trim().split(/\s+/).filter(Boolean)) {
+      if(line&&measure(`${line} ${word}`)<=maxWidth){line+=` ${word}`;continue;}
+      if(line){lines.push(line);line='';}
+      for(const char of Array.from(word)) {
+        if(line&&measure(line+char)>maxWidth){lines.push(line);line='';}
+        line+=char;
+      }
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
+export async function drawingPng(svg, title, observations='') {
   const ns='http://www.w3.org/2000/svg',copy=svg.cloneNode(true);
   copy.setAttribute('xmlns',ns);copy.setAttribute('font-family','Arial, sans-serif');
   copy.removeAttribute('class');copy.removeAttribute('style');
@@ -53,7 +72,12 @@ export async function drawingPng(svg, title) {
   if(!boxes.length)throw new Error('Dibuja un croquis antes de descargar la imagen.');
   const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
   const w=Math.max(...boxes.map(b=>b.x+b.width))-x,h=Math.max(...boxes.map(b=>b.y+b.height))-y;
-  const width=Math.max(w+2,8),height=Math.max(h+2.4,5),left=x-1,top=y-1.6;
+  const width=Math.max(w+2,8),baseHeight=Math.max(h+2.4,5),left=x-1,top=y-1.6;
+  const measuring=document.createElement('canvas').getContext('2d');
+  if(!measuring)throw new Error('El navegador no permite generar la imagen.');
+  measuring.font='18px Arial';
+  const notes=wrapObservations(observations,width-.7,line=>measuring.measureText(line).width/100);
+  const height=baseHeight+(notes.length?.5+notes.length*.26:0);
   copy.setAttribute('viewBox',`${left} ${top} ${width} ${height}`);
   const scale=2400/Math.max(width,height),pxW=Math.round(width*scale),pxH=Math.round(height*scale);
   copy.setAttribute('width',pxW);copy.setAttribute('height',pxH);
@@ -67,6 +91,11 @@ export async function drawingPng(svg, title) {
   };
   // Limitar el título mantiene su caja dentro de la lámina sin cortar texto.
   label(title.slice(0,65),top+.5,Math.min(.3,(width-.7)/Math.max(title.slice(0,65).length*.65,1)));
+  if(notes.length) {
+    label('Observaciones',top+baseHeight-.2,.20);
+    copy.lastChild.setAttribute('font-weight','700');
+    notes.forEach((line,index)=>label(line,top+baseHeight+.1+index*.26,.18));
+  }
   const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copy)],{type:'image/svg+xml;charset=utf-8'}));
   try {
     const image=new Image();

@@ -195,7 +195,8 @@ with transaction.atomic():
     token=writer.cookies[settings.CSRF_COOKIE_NAME].value
     doc={'version':1,'objects':[{'id':'test-wall','kind':'wall','label':'Prueba transaccional',
          'x1':0,'y1':0,'x2':2,'y2':0,'height':2.5,'thickness':.12,'assignments':[]}],
-         'columns':[{'id':'test-column','kind':'column','label':'Independiente','x':1,'y':1,'column_type':'C'}]}
+         'columns':[{'id':'test-column','kind':'column','label':'Independiente','x':1,'y':1,'column_type':'C'}],
+         'observations':'Observación de prueba del vendedor.\nEntrega por confirmar.'}
     body={'name':'Prueba transaccional de despliegue','document':doc}
     kwargs={'content_type':'application/json','HTTP_X_CSRFTOKEN':token}
     result=writer.post('/api/sketches/',json.dumps(body),**kwargs)

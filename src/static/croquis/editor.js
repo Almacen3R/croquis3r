@@ -99,6 +99,9 @@ function addOpening(wall, kind, position) {
   message(`${kind==='door'?doorName(width):typeName(kind)} de ${fmt(width)} m creada. Arrastra el cuerpo para moverla o las bolitas para cambiar el largo. El largo es el módulo de cálculo.`);
 }
 function render() {
+  const notes=state.document.observations||'';
+  if($('observations').value!==notes)$('observations').value=notes;
+  $('observations-print').textContent=notes;
   $('scene').replaceChildren(); $('measurements').replaceChildren();
   for (const wall of walls()) {
     const active = wall.id === state.selected;
@@ -555,6 +558,7 @@ $('open').onclick=action(async()=>{const id=$('saved-list').value;if(!id)throw n
 $('new').onclick=()=>{if(discardAllowed())replaceDocument({version:1,objects:[]},'Nuevo croquis');};
 $('example').onclick=()=>{if(discardAllowed())example();};
 $('project-name').oninput=markDirty;
+$('observations').oninput=()=>{state.document.observations=$('observations').value;$('observations-print').textContent=$('observations').value;markDirty();};
 $('tab-object').onclick=()=>tab('object');$('tab-materials').onclick=()=>tab('materials');
 $('recalculate').onclick=()=>estimate();$('dimensions').onchange=render;
 // Visual preference only: hiding the grid does not change snapping or the drawing.
@@ -631,7 +635,7 @@ $('download-image').onclick=action(async()=>{
     const original=state.selected;let image;
     try {
       state.selected=null;render();
-      image=drawingPng(svg,name);
+      image=drawingPng(svg,name,state.document.observations||'');
     } finally {state.selected=original;render();}
     const png=await image;
     const csrfName=document.querySelector('meta[name="csrf-cookie-name"]').content;

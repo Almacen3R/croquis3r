@@ -114,6 +114,13 @@ def validate_document(document, articles):
                 if max(a1, b1) < min(a2, b2):
                     raise InvalidDocument("Hay paredes superpuestas. Muévalas para evitar contar material dos veces.")
     result = {"version": 1, "objects": cleaned}
+    if 'observations' in document:
+        notes = document['observations']
+        if not isinstance(notes, str) or len(notes) > 1000 or len(notes.replace('\r\n', '\n').replace('\r', '\n').split('\n')) > 20:
+            raise InvalidDocument('Observaciones admite hasta 1000 caracteres y 20 renglones.')
+        if any(ord(char) < 32 and char not in '\r\n\t' for char in notes):
+            raise InvalidDocument('Observaciones contiene caracteres no admitidos.')
+        result['observations'] = notes
     if "columns" in document:
         columns = document["columns"]
         if not isinstance(columns, list) or len(columns) > 300:
