@@ -2,6 +2,7 @@ import json
 import shutil
 import subprocess
 import time
+from time import monotonic
 from datetime import timedelta
 
 from django.conf import settings
@@ -38,10 +39,10 @@ def run_job(job):
     try:
         with (output.parent / 'blender.log').open('wb') as log:
             process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
-            deadline = time.monotonic() + settings.RENDER_TIMEOUT
+            deadline = monotonic() + settings.RENDER_TIMEOUT
             while process.poll() is None:
                 heartbeat()
-                if time.monotonic() >= deadline:
+                if monotonic() >= deadline:
                     raise TimeoutError('Render deadline')
                 time.sleep(1)
             if process.returncode != 0 or not output.is_file() or output.stat().st_size < 100:

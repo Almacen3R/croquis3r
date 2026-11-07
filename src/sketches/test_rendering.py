@@ -7,6 +7,7 @@ from unittest.mock import patch, MagicMock
 from PIL import Image
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import override_settings
 from django.utils import timezone
 
@@ -78,7 +79,14 @@ class RenderTests(AuthenticatedTestCase):
             self.assertEqual(response['Content-Type'],'image/png')
             self.assertIn('no-store',response['Cache-Control'])
             self.assertIn('attachment',response['Content-Disposition'])
-            response.close()
+            # Consume the streaming response through Django's test-client wrapper.
+            # Calling response.close() directly emits request_finished and closes
+            # PostgreSQL inside TestCase's outer transaction (SQLite masks this).
+            with patch.object(connection, 'close', side_effect=AssertionError(
+                    'La descarga no debe cerrar la transacción de TestCase')) as close_connection:
+                self.assertEqual(b''.join(response.streaming_content), b'png-test')
+                close_connection.assert_not_called()
+            self.assertTrue(RenderJob.objects.filter(pk=job.pk).exists())
 
     def test_scene_bounds_and_settings_are_validated(self):
         for mutation in [lambda s:s.update(boxes=[]),lambda s:s['boxes'][0].update(role='script'),
@@ -114,7 +122,7 @@ class RenderTests(AuthenticatedTestCase):
         self.post();job=claim_job();process=MagicMock();process.poll.return_value=None
         with tempfile.TemporaryDirectory() as root,override_settings(RENDER_ROOT=Path(root),RENDER_TIMEOUT=1),patch(
             'sketches.management.commands.render_worker.subprocess.Popen',return_value=process),patch(
-            'sketches.management.commands.render_worker.time.monotonic',side_effect=[0,2]):
+            'sketches.management.commands.render_worker.monotonic',side_effect=[0,2]):
             run_job(job)
         process.kill.assert_called_once();process.wait.assert_called_once()
         job.refresh_from_db();self.assertEqual(job.status,'failed');self.assertIn('tiempo',job.error)
