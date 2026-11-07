@@ -1,8 +1,11 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 from . import views
+from . import render_views
 
 urlpatterns = [
+    path('api/renders/', render_views.jobs, name='render-jobs'),
+    path('api/renders/<uuid:pk>/image/', render_views.image, name='render-image'),
     path("ingresar/", LoginView.as_view(template_name="registration/login.html"), name="login"),
     path("salir/", LogoutView.as_view(), name="logout"),
     path("", views.editor, name="editor"),

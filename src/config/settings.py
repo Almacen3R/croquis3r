@@ -60,6 +60,10 @@ LOGIN_URL = "/ingresar/"
 LOGIN_REDIRECT_URL = "/atenciones/"
 LOGOUT_REDIRECT_URL = "/ingresar/"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 1_048_576
+RENDER_ENABLED = os.getenv('RENDER_ENABLED', '0') == '1'
+RENDER_ROOT = Path(os.getenv('RENDER_ROOT', str(BASE_DIR / 'runtime/renders')))
+BLENDER_BINARY = os.getenv('BLENDER_BINARY', 'blender')
+RENDER_TIMEOUT = int(os.getenv('RENDER_TIMEOUT', '600'))
 LAN_HTTP_MODE = os.getenv("DJANGO_LAN_HTTP", "0") == "1"
 # Cookies compartidas por host, incluso entre puertos: aislar otras apps Django.
 SESSION_COOKIE_NAME = "croquis3r_sessionid"

@@ -114,6 +114,8 @@ def validate_document(document, articles):
                 if max(a1, b1) < min(a2, b2):
                     raise InvalidDocument("Hay paredes superpuestas. Muévalas para evitar contar material dos veces.")
     result = {"version": 1, "objects": cleaned}
+    if 'presentation3d' in document:
+        result['presentation3d'] = validate_presentation3d(document['presentation3d'])
     if 'observations' in document:
         notes = document['observations']
         if not isinstance(notes, str) or len(notes) > 1000 or len(notes.replace('\r\n', '\n').replace('\r', '\n').split('\n')) > 20:
@@ -149,6 +151,31 @@ def validate_document(document, articles):
                                       "x": x, "y": y, "column_type": column["column_type"]})
     if "ticoblock" in document:
         result["ticoblock"] = validate_ticoblock_settings(document["ticoblock"])
+    return result
+
+
+def validate_presentation3d(settings):
+    if not isinstance(settings, dict):
+        raise InvalidDocument('Opciones de presentación 3D inválidas.')
+    choices = {
+        'wall_color': ('ivory', 'white', 'sand', 'sage'),
+        'floor_finish': ('tile', 'wood', 'concrete'),
+        'roof_type': ('none', 'flat', 'gable'),
+        'roof_color': ('charcoal', 'terracotta', 'gray'),
+        'ridge_axis': ('x', 'z'),
+    }
+    if set(settings) - set(choices) - {'roof_rise'}:
+        raise InvalidDocument('La presentación 3D contiene opciones desconocidas.')
+    result = {}
+    for key, values in choices.items():
+        if key in settings:
+            if not isinstance(settings[key], str) or settings[key] not in values:
+                raise InvalidDocument('Selecciona una opción de presentación 3D disponible.')
+            result[key] = settings[key]
+    if 'roof_rise' in settings:
+        if isinstance(settings['roof_rise'], bool):
+            raise InvalidDocument('La elevación del techo debe ser un número de 0,30 a 3 m.')
+        result['roof_rise'] = float(number(settings['roof_rise'], 'Elevación del techo', '.3', 3))
     return result
 
 

@@ -652,8 +652,16 @@ $('export-csv').onclick=()=>{
   const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
   const a=element('a',{href:url,download:'croquis3r-materiales-ticoblock.csv'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
+$('open-3d').onclick=action(async()=>{
+  if(!walls().length && !state.document.columns?.length)throw new Error('Dibuja al menos una pared o columna antes de abrir la vista 3D.');
+  const button=$('open-3d');button.disabled=true;button.textContent='Preparando 3D…';
+  try {
+    const {openHouseViewer}=await import(`./viewer3d.mjs${new URL(import.meta.url).search}`);
+    openHouseViewer(snapshot(),$('project-name').value.trim(),settings=>mutate(()=>{state.document.presentation3d=clone(settings);}),state.id);
+  } finally {button.disabled=false;button.textContent='Vista 3D';}
+});
 window.addEventListener('keydown',event=>{
-  if(['INPUT','SELECT','TEXTAREA'].includes(event.target.tagName)||$('name-dialog').open||$('download-dialog').open)return;
+  if(['INPUT','SELECT','TEXTAREA'].includes(event.target.tagName)||$('name-dialog').open||$('download-dialog').open||$('viewer3d-dialog').open)return;
   if(event.key==='Escape'){if(drag){state.document=drag.before;drag=null;render();}setTool('select');}
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();$(event.shiftKey?'redo':'undo').click();}
   else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){event.preventDefault();$('redo').click();}

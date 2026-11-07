@@ -24,7 +24,13 @@ stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup="$data/backup-staging/update-$stamp"
 install -d -m 0700 "$backup"
 cd "$app"
-dc() { docker compose --env-file .env.production -f compose.yaml -f compose.server-lan.yaml "$@"; }
+dc() {
+  if test -f compose.render.yaml; then
+    docker compose --env-file .env.production -f compose.yaml -f compose.server-lan.yaml -f compose.render.yaml --profile renders "$@"
+  else
+    docker compose --env-file .env.production -f compose.yaml -f compose.server-lan.yaml "$@"
+  fi
+}
 dc config --quiet
 test -n "$(dc ps -q db)" || { echo 'La base de Croquis3R no está iniciada.' >&2; exit 1; }
 old_release="$(python3 - <<'PY'
@@ -75,12 +81,15 @@ new_release="git-${commit:0:12}"
 switched=0
 db_switched=0
 code_updated=0
+render_started=0
 old_commit="$(g rev-parse --verify HEAD 2>/dev/null || true)"
 on_failure() {
   status=$?
   trap - ERR
   echo "Actualización interrumpida. Respaldo conservado en $backup" >&2
   cp -p "$backup/env.production" .env.production
+  # Stop only this project's new image worker if promotion fails.
+  if [ "$render_started" = 1 ]; then dc stop render-worker || true; fi
   if [ "$db_switched" = 1 ]; then
     echo 'Recuperando la imagen anterior de PostgreSQL 18, sin restaurar datos.' >&2
     dc stop app || true
@@ -134,7 +143,46 @@ if private.exists():
     print('Configuración de precios cargada; valores privados omitidos.')
 PYCFG
 dc config --quiet
-dc build --pull app
+# The renderer is opt-in in normal Compose usage; this release enables it after
+# checking the immutable worker image and a real render before touching traffic.
+python3 - <<'PYRENDER'
+from pathlib import Path
+path=Path('.env.production')
+rows=[line for line in path.read_text().splitlines() if not line.startswith('RENDER_ENABLED=')]
+path.write_text('\n'.join(rows+['RENDER_ENABLED=1'])+'\n')
+path.chmod(0o600)
+PYRENDER
+dc build --pull app render-worker
+
+smoke="$backup/render-smoke"
+mkdir -m 0700 "$smoke"
+cp scripts/render-smoke-scene.json "$smoke/scene.json"
+python3 - "$smoke" <<'PYSMOKE'
+import os,sys
+os.chown(sys.argv[1],10001,10001)
+PYSMOKE
+# No production database/network/credentials in this rendering smoke test.
+python3 - "$smoke" "$new_release" <<'PYSMOKE'
+import pathlib,subprocess,sys
+folder,release=sys.argv[1:]
+name='croquis3r-render-smoke-'+release.removeprefix('git-')
+args=['docker','run','--rm','--name',name,'--network','none','--read-only',
+      '--cpus','2','--memory','2g','--pids-limit','128','--cap-drop','ALL',
+      '--security-opt','no-new-privileges','--tmpfs','/tmp:size=256m,mode=1777',
+      '-v',folder+':/work','croquis3r-render-worker:'+release,
+      '/opt/blender/blender','--background','--factory-startup','--disable-autoexec',
+      '--threads','2','--python-exit-code','1','--python','/app/src/sketches/render_blender.py',
+      '--','/work/scene.json','/work/render.png']
+try:
+    with (pathlib.Path(folder)/'blender.log').open('wb') as log:
+        subprocess.run(args,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=600)
+except BaseException:
+    subprocess.run(['docker','rm','-f',name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    raise
+subprocess.run(['docker','run','--rm','--network','none','--read-only','-v',folder+':/work:ro',
+    'croquis3r-app:'+release,'python','-c',
+    "from PIL import Image; im=Image.open('/work/render.png'); assert im.format=='PNG' and im.size==(1280,960); im.verify(); print('Blender Linux: PNG verificado, 1280x960')"],check=True)
+PYSMOKE
 dc run --rm --no-deps -T app python -m config.security_inventory --verify > "$backup/runtime-new.json"
 dc pull db
 # Comprobar la imagen nueva sin montar el directorio de datos.
@@ -142,9 +190,9 @@ docker run --rm --network none --entrypoint postgres postgres:18.6-bookworm --ve
 dc run --rm --no-deps -T app python manage.py check
 # Verifica permisos SELECT y los SKU si se habilitó la conexión real.
 dc run --rm --no-deps -T app python manage.py shell --command "from django.conf import settings; from django.core.management import call_command; call_command('check_3r_prices') if settings.THREER_PRICING_ENABLED else print('Precios externos deshabilitados.')"
-# Solo se autoriza aquí la migración aditiva de propietarios: campos nulos,
-# sin asignar autorías históricas, borrar filas ni cambiar documentos/resultados.
-dc run --rm --no-deps -T app python manage.py shell --command "from django.db import connection; from django.db.migrations.executor import MigrationExecutor; executor=MigrationExecutor(connection); plan=executor.migration_plan(executor.loader.graph.leaf_nodes()); assert all(not backwards and (migration.app_label,migration.name)==('sketches','0003_record_owners') for migration,backwards in plan), 'Migraciones inesperadas; revisar antes de continuar.'; print('Plan de migraciones permitido:',[(m.app_label,m.name) for m,_ in plan])"
+# Only the additive ownership and render-queue migrations are allowed. No existing
+# rows/documents/results are rewritten or imported from the local workstation.
+dc run --rm --no-deps -T app python manage.py shell --command "from django.db import connection; from django.db.migrations.executor import MigrationExecutor; executor=MigrationExecutor(connection); plan=executor.migration_plan(executor.loader.graph.leaf_nodes()); allowed={('sketches','0003_record_owners'),('sketches','0004_renderworker_renderjob')}; assert all(not backwards and (migration.app_label,migration.name) in allowed for migration,backwards in plan), 'Migraciones inesperadas; revisar antes de continuar.'; print('Plan de migraciones permitido:',[(m.app_label,m.name) for m,_ in plan])"
 # Las pruebas usan una base de prueba PostgreSQL independiente de croquis3r.
 dc run --rm --no-deps -T app python manage.py test sketches catalog
 # Evitar escrituras de la imagen anterior durante la migración y comprobación.
@@ -156,6 +204,11 @@ dc up -d --no-deps --wait --wait-timeout 120 db
 test "$(dc exec -T db psql -U croquis3r_app -d croquis3r -Atc 'SHOW server_version_num' | tr -d '\r')" = 180006
 dc run --rm --no-deps -T app python manage.py migrate --noinput
 dc up -d --no-deps --wait --wait-timeout 120 app
+render_started=1
+dc up -d --no-deps --wait --wait-timeout 120 render-worker
+dc exec -T render-worker /opt/blender/blender --version > "$backup/blender-version.txt"
+sed -n '1p' "$backup/blender-version.txt"
+dc exec -T app python manage.py shell --command "from sketches.rendering import worker_available; assert worker_available(), 'El trabajador Blender no reporta disponibilidad'; print('Servicio de imágenes disponible.')"
 curl --fail --silent http://192.168.0.214:8013/health/
 dc exec -T app python -m config.security_inventory --verify > "$backup/runtime-after.json"
 dc exec -T db postgres --version > "$backup/postgres-after.txt"

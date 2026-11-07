@@ -135,3 +135,11 @@ Repositorio oficial: https://github.com/Almacen3R/croquis3r · rama `main`. La i
 - [Artículos y variantes pendientes de vincular a precios de 3R](docs/articulos-para-precios.md).
 
 - [Homologación y consulta de precios 3R](docs/homologacion-precios-3r-2026-10-22.md): configuración externa de solo lectura, lista GENERAL/CRC e IVA incluido.
+
+## Vista 3D inicial — 7 de noviembre de 2026
+
+El editor incluye **Vista 3D** para revisar paredes, aberturas, columnas dibujadas y pisos de recintos cerrados. Permite girar, acercar, ver desde arriba, transparentar paredes y abrir puertas. Funciona con cambios sin guardar y representa una planta. Ver [arquitectura y límites de la primera etapa](docs/visor-3d-2026-11-07.md).
+
+Segunda etapa local: **Acabados y techo** permite elegir pintura, piso y cubierta plana o a dos aguas, y **Entrar a la casa** habilita el recorrido a altura de persona con colisiones. Las preferencias se guardan con el croquis y sus archivos portátiles. Ver [uso y límites de la presentación 3D](docs/presentacion-3d-etapa2-2026-11-07.md). Blender y el video siguen pendientes.
+
+Tercera etapa local: imágenes PNG con **Blender**, cola en segundo plano, historial privado y descarga desde el visor. Incluye un trabajador opcional para Docker; su ejecución Linux y el despliegue siguen pendientes. Ver [renderizado con Blender](docs/renderizado-blender-2026-11-07.md). El video continúa pendiente.

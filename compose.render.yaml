@@ -1,0 +1,58 @@
+# Optional, isolated worker. No published port, commercial SQL access or GPU needed.
+# Enable RENDER_ENABLED=1 in the app environment before starting this profile.
+services:
+  app:
+    environment:
+      RENDER_ENABLED: ${RENDER_ENABLED:-0}
+      RENDER_ROOT: /app/runtime/renders
+    volumes:
+      - render_data:/app/runtime/renders
+  render-worker:
+    image: croquis3r-render-worker:${CROQUIS_RELEASE:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile.render
+      additional_contexts:
+        app_image: service:app
+    profiles: [renders]
+    restart: unless-stopped
+    init: true
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina DJANGO_SECRET_KEY}
+      DB_ENGINE: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-croquis3r}
+      POSTGRES_USER: ${POSTGRES_USER:-croquis3r_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+      POSTGRES_HOST: db
+      RENDER_ENABLED: "1"
+      RENDER_ROOT: /app/runtime/renders
+      RENDER_TIMEOUT: "600"
+      THREER_PRICING_ENABLED: "0"
+    volumes:
+      - render_data:/app/runtime/renders
+    networks: [backend]
+    depends_on:
+      db:
+        condition: service_healthy
+    cpus: 2
+    mem_limit: 2g
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, manage.py, render_worker, --check]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  render_data:

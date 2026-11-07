@@ -241,7 +241,7 @@ export function doorName(width) {
 
 // Área de las caras cerradas del grafo de paredes, medida sobre sus líneas de referencia.
 // Divide cruces/T antes de recorrer caras; las divisiones interiores no duplican superficie.
-export function floorArea(walls) {
+export function floorArea(walls, {includeRegions = false} = {}) {
   const eps=1e-7, cross=(a,b)=>a.x*b.y-a.y*b.x;
   const edges=new Map(), nodes=new Map();
   const key=p=>`${+p.x.toFixed(6)},${+p.y.toFixed(6)}`;
@@ -300,6 +300,8 @@ export function floorArea(walls) {
   }
   const groups=new Map();
   for(const face of faces){const id=face.ring[0].component;if(!groups.has(id))groups.set(id,[]);groups.get(id).push(face);}
-  const area=faces.filter(face=>![...groups].some(([id,others])=>id!==face.ring[0].component&&others.some(outer=>outer.area>face.area+eps&&face.ring.every(p=>inside(p,outer.ring))))).reduce((sum,f)=>sum+f.area,0);
-  return {area:area>eps?+area.toFixed(6):null,partial:used.size<edges.size};
+  const regions=faces.filter(face=>![...groups].some(([id,others])=>id!==face.ring[0].component&&others.some(outer=>outer.area>face.area+eps&&face.ring.every(p=>inside(p,outer.ring)))));
+  const area=regions.reduce((sum,f)=>sum+f.area,0);
+  return {area:area>eps?+area.toFixed(6):null,partial:used.size<edges.size,
+    ...(includeRegions?{regions:regions.map(face=>face.ring.map(p=>({x:p.x,y:p.y})))}:{})};
 }

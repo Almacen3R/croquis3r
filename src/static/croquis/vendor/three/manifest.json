@@ -1,0 +1,14 @@
+{
+  "name": "three",
+  "version": "0.187.0",
+  "source": "https://registry.npmjs.org/three/-/three-0.187.0.tgz",
+  "integrity": "sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==",
+  "license": "MIT",
+  "patch": "OrbitControls bare import replaced with local ./three.module.js",
+  "sha256": {
+    "three.core.js": "613e370f76638fdef83926642bf256dc9615684922de1ce1f63a8583e5d78578",
+    "three.module.js": "104f56145899722094556490d787aae0617cc2fc3382f31df02d724ea1aee341",
+    "OrbitControls.js": "a747d56dd959510407777f1800792b2b52c0a435980fd6e40caf303d8a674b9e",
+    "LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
+  }
+}

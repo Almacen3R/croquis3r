@@ -7,6 +7,7 @@
   <meta name="csrf-cookie-name" content="{{ csrf_cookie_name }}">
   <title>Croquis3R · Editor de croquis</title>
   <link rel="stylesheet" href="{% static 'croquis/editor.css' %}?v={{ editor_asset_version }}">
+  <link rel="stylesheet" href="{% static 'croquis/viewer3d.css' %}?v={{ editor_asset_version }}">
   <script type="module" src="{% static 'croquis/editor.js' %}?v={{ editor_asset_version }}"></script>
 {% include 'sketches/_brand_head.html' %}</head>
 <body>
@@ -54,7 +55,7 @@
     </aside>
 
     <main class="main">
-      <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><div class="image-actions"><span id="object-count" class="count-badge">0 objetos</span><button id="download-image" class="secondary" disabled>Descargar</button></div></div>
+      <div class="canvas-heading"><div><div class="eyebrow">PROYECTO / CROQUIS CONCEPTUAL</div><h1>Una idea, a escala.</h1></div><div class="image-actions"><span id="object-count" class="count-badge">0 objetos</span><button id="open-3d" class="secondary">Vista 3D</button><button id="download-image" class="secondary" disabled>Descargar</button></div></div>
       <div class="canvas-toolbar">
         <div class="toolbar-group"><button id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button><span class="toolbar-separator"></span><label><input type="checkbox" id="snap" checked> Ajustar a 0,50 m</label><label><input type="checkbox" id="dimensions" checked> Medidas</label><label><input type="checkbox" id="show-grid" checked> Cuadrícula</label></div>
         <div class="toolbar-group"><button id="zoom-out" aria-label="Alejar" title="Alejar el plano">− Alejar</button><span id="zoom-label" role="status" aria-label="Nivel de zoom">100%</span><button id="zoom-in" aria-label="Acercar" title="Acercar el plano">＋ Acercar</button><button id="fit" title="Centrar todo el croquis">Centrar</button><button id="pan-view" data-tool="pan" aria-pressed="false" title="Arrastrar para mover la vista">Mover vista</button><span class="canvas-height-buttons"><button id="canvas-shorter" title="Reducir la altura del área de dibujo">− Menos alto</button><button id="canvas-taller" title="Aumentar la altura del área de dibujo">＋ Más alto</button></span></div>
@@ -117,5 +118,21 @@
   </div>
   <dialog id="download-dialog" aria-labelledby="download-title"><form method="dialog"><h2 id="download-title">Descargar</h2><p>¿En qué formato quieres descargarlo?</p><div class="download-formats"><button value="pdf" class="primary">PDF</button><button value="png" class="secondary">PNG</button></div><p>Lista de materiales en PDF</p><div class="download-materials"><button value="materials-priced" class="secondary">Con precios</button><button value="materials-plain" class="secondary">Sin precios</button></div><div class="dialog-actions"><button value="cancel">Cancelar</button></div></form></dialog>
   <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">Guardar plantilla</h2><label class="field-label" for="dialog-name">Nombre</label><input id="dialog-name" maxlength="100" required><div class="dialog-actions"><button value="cancel" formnovalidate>Cancelar</button><button value="save" class="primary">Guardar</button></div></form></dialog>
+  <dialog id="viewer3d-dialog" aria-labelledby="viewer3d-title" aria-describedby="viewer3d-instructions">
+    <header class="viewer3d-heading"><div><div class="eyebrow">VISTA 3D · PRESENTACIÓN</div><h2 id="viewer3d-title">Vista 3D</h2></div><button id="viewer3d-close" class="secondary" autofocus>Volver al croquis</button></header>
+    <div class="viewer3d-toolbar" role="group" aria-label="Controles de la vista 3D"><button class="secondary" data-camera="perspective">Centrar casa</button><button class="secondary" data-camera="top">Desde arriba</button><button class="secondary" data-camera="front">Vista frontal</button><button class="secondary" id="viewer3d-interior" aria-pressed="false">Entrar a la casa</button><label><input type="checkbox" id="viewer3d-transparent"> Paredes transparentes</label><label><input type="checkbox" id="viewer3d-doors"> Abrir puertas</label><label><input type="checkbox" id="viewer3d-hide-roof"> Ocultar techo</label></div>
+    <details class="viewer3d-finishes"><summary>Acabados y techo</summary><div class="viewer3d-settings">
+      <label>Pintura<select id="viewer3d-wall-color"><option value="ivory">Marfil</option><option value="white">Blanco</option><option value="sand">Arena</option><option value="sage">Verde suave</option></select></label>
+      <label>Piso<select id="viewer3d-floor-finish"><option value="tile">Cerámica</option><option value="wood">Madera</option><option value="concrete">Concreto</option></select></label>
+      <label>Techo propuesto<select id="viewer3d-roof-type"><option value="none">Sin techo</option><option value="flat">Plano</option><option value="gable">Dos aguas</option></select></label>
+      <label>Color del techo<select id="viewer3d-roof-color"><option value="charcoal">Grafito</option><option value="terracotta">Terracota</option><option value="gray">Gris</option></select></label>
+      <label>Dirección de cumbrera<select id="viewer3d-ridge-axis"><option value="x">Horizontal del croquis</option><option value="z">Vertical del croquis</option></select></label>
+      <label>Elevación de cumbrera · m<input id="viewer3d-roof-rise" type="number" min="0.3" max="3" step="0.1" value="0.8"></label>
+    </div><p>Se guardan con «Guardar croquis». Techo y acabados ilustrativos; no se agregan a la cotización.</p></details>
+    <div id="viewer3d-walk-controls" class="viewer3d-walk-controls" role="group" aria-label="Recorrido interior" hidden><button type="button" data-walk="left" aria-label="Girar a la izquierda">↶ Girar</button><button type="button" data-walk="forward">↑ Avanzar</button><button type="button" data-walk="backward">↓ Retroceder</button><button type="button" data-walk="right" aria-label="Girar a la derecha">Girar ↷</button><button type="button" id="viewer3d-restart">Reubicar dentro</button></div>
+    <details id="viewer3d-renders" class="viewer3d-renders"><summary>Imágenes de presentación</summary><div class="render3d-actions"><button type="button" id="viewer3d-render" class="primary" disabled>Generar imagen</button><span id="viewer3d-render-status" role="status">Consultando servicio de imágenes…</span></div><p id="viewer3d-render-feedback" role="status" hidden></p><p>Se genera una vista exterior con los acabados y el techo elegidos, aunque hayas ocultado el techo o abierto las puertas en el visor. La imagen corresponde al croquis capturado al solicitarla.</p><div id="viewer3d-render-list"></div></details>
+    <div id="viewer3d-stage"></div>
+    <footer class="viewer3d-footer"><p id="viewer3d-instructions"><strong>Arrastra para girar.</strong> Rueda o pellizco para acercar; botón derecho o dos dedos para desplazar.</p><p id="viewer3d-status" role="status"></p><p>Vista conceptual de una planta. Aberturas según módulos y alturas visuales; columnas de sección ilustrativa. Techo sin aleros ni diseño estructural, propuesto sobre recintos cerrados.</p></footer>
+  </dialog>
 </body>
 </html>

@@ -15,7 +15,8 @@ RUN apt-get update \
     && useradd --uid 10001 --gid croquis3r --no-create-home croquis3r
 COPY --chown=croquis3r:croquis3r manage.py ./
 COPY --chown=croquis3r:croquis3r src ./src
-RUN DJANGO_DEBUG=1 DB_ENGINE=sqlite python manage.py collectstatic --noinput
+RUN DJANGO_DEBUG=1 DB_ENGINE=sqlite python manage.py collectstatic --noinput \
+    && mkdir -p /app/runtime/renders && chown croquis3r:croquis3r /app/runtime/renders
 USER croquis3r
 EXPOSE 8080
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8080", "--worker-class", "sync", "--workers", "2", "--access-logfile", "-", "--error-logfile", "-"]
