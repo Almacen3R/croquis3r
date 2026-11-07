@@ -158,8 +158,13 @@ smoke="$backup/render-smoke"
 mkdir -m 0700 "$smoke"
 cp scripts/render-smoke-scene.json "$smoke/scene.json"
 python3 - "$smoke" <<'PYSMOKE'
-import os,sys
-os.chown(sys.argv[1],10001,10001)
+import os,pathlib,sys
+folder=pathlib.Path(sys.argv[1])
+os.chown(folder,10001,10001)
+# umask 077 makes cp create a root-owned 0600 JSON. The unprivileged Blender
+# process needs ownership of the input too, not only of its output directory.
+os.chown(folder/'scene.json',10001,10001)
+(folder/'scene.json').chmod(0o600)
 PYSMOKE
 # No production database/network/credentials in this rendering smoke test.
 python3 - "$smoke" "$new_release" <<'PYSMOKE'
@@ -177,6 +182,10 @@ try:
     with (pathlib.Path(folder)/'blender.log').open('wb') as log:
         subprocess.run(args,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=600)
 except BaseException:
+    log_path=pathlib.Path(folder)/'blender.log'
+    if log_path.exists():
+        print('Ultimas lineas de la prueba Blender (sin datos de clientes):',flush=True)
+        print('\n'.join(log_path.read_text(errors='replace').splitlines()[-60:]),flush=True)
     subprocess.run(['docker','rm','-f',name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     raise
 subprocess.run(['docker','run','--rm','--network','none','--read-only','-v',folder+':/work:ro',

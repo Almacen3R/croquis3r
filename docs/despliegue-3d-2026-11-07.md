@@ -24,3 +24,9 @@ El instalador de autorización fija un commit y hashes concretos y permite únic
 ## Estado
 
 Preparado para empaquetar y transferir. El despliegue no se considera aplicado hasta verificar el resultado de la unidad y los servicios después de la autenticación administrativa.
+
+## Primer intento y corrección
+
+El paquete `156815f19d9b` construyó ambas imágenes y verificó la descarga Linux de Blender. La prueba aislada terminó con código 1 y la actualización revirtió el checkout antes de cambiar la aplicación en uso. La aplicación siguió saludable en `0de706a3d92d`; no se restauró ni sobrescribió PostgreSQL.
+
+Se detectó un fallo de permisos en la preparación: con `umask 077`, el JSON copiado por root queda con modo 0600. El directorio se asignaba al UID 10001, pero el JSON permanecía de root, impidiendo leerlo desde Blender. Se corrige asignando también el archivo al UID/GID 10001 y manteniendo 0600. Además, se envían las últimas líneas del log de la prueba al registro de la unidad en caso de fallo; son datos de una escena sintética, sin clientes ni credenciales. La hipótesis debe confirmarse con la siguiente prueba Linux: el registro original de Blender quedó en el respaldo privado y no es accesible con los permisos SSH disponibles.
