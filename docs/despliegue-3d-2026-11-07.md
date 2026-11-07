@@ -23,7 +23,7 @@ El instalador de autorización fija un commit y hashes concretos y permite únic
 
 ## Estado
 
-Preparado para empaquetar y transferir. El despliegue no se considera aplicado hasta verificar el resultado de la unidad y los servicios después de la autenticación administrativa.
+**Aplicado y verificado en producción con el commit `520b15c9c952dde6c98e676f927fb07308cdc0b6`.** La unidad `croquis3r-update-520b15c9c952.service` terminó con `Result=success` y `ExecMainStatus=0`. Los intentos anteriores y sus correcciones se documentan abajo.
 
 ## Primer intento y corrección
 
@@ -38,3 +38,11 @@ El paquete `fc9e04c3c97d` confirmó «Blender Linux: PNG verificado, 1280x960».
 Esa prueba llamaba a `FileResponse.close()` directamente dentro de `TestCase`. Esto emite `request_finished`, invoca el cierre de conexiones y deja cerrada la transacción externa de PostgreSQL. SQLite en memoria ignora ese cierre y ocultó el problema en local. Se cambia a consumir `response.streaming_content` mediante el iterador del cliente de pruebas de Django, que protege explícitamente el cierre de la conexión. La prueba sigue verificando permisos, cabeceras y ahora también el cuerpo descargado; no se omiten pruebas ni se modifican conexiones o datos de producción.
 
 Se añade una aserción que prohíbe cerrar la conexión durante esa descarga, para detectar la regresión también con SQLite. La simulación del timeout usa una referencia local a `monotonic`, evitando sustituir el reloj global de otras bibliotecas durante la prueba; el reloj real del trabajador no cambia.
+
+## Despliegue confirmado
+
+El paquete `520b15c9c952` superó el render Linux, las 152 pruebas Django con PostgreSQL y la migración aditiva `0004_renderworker_renderjob`. La aplicación, PostgreSQL y `croquis3r-render-worker-1` quedaron saludables. Blender reporta 4.5.15 LTS y la comprobación desde la aplicación confirmó el servicio de imágenes disponible.
+
+Salud HTTP: `{"status":"ok","application":"croquis3r"}`. Se verificaron mediante cliente autenticado editor, calculador, proyectos, guardado/importación con CSRF, descargas y cierre de sesión. La huella de registros se conservó: 4 artículos, 3 atenciones, 1 plantilla de objeto y 16 croquis.
+
+Respaldo previo conservado: `/data/projects/croquis3r/backup-staging/update-20261107T221148Z`. Se mantiene el acceso LAN `http://192.168.0.214:8013/` y las cuentas existentes. Si una pestaña abierta antes del cambio no muestra Vista 3D, recargar completamente y abrir el editor de un croquis; el botón aparece junto a Descargar.

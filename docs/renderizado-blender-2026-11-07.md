@@ -1,5 +1,7 @@
 # Renderizado privado con Blender — 7 de noviembre de 2026
 
+**Actualización:** desplegado en producción LAN con `520b15c9c952`, aplicación y trabajador saludables, prueba real Blender Linux y 152 pruebas Django sobre PostgreSQL aprobadas. Véase el [registro del despliegue y correcciones](despliegue-3d-2026-11-07.md). Las menciones a validación pendiente más abajo describen la preparación local anterior al despliegue.
+
 ## Uso para vendedores
 
 Abrir un croquis → **Vista 3D** → **Imágenes de presentación** → **Generar imagen**. Se captura el dibujo actual con su pintura, piso y techo. No necesita estar guardado, aunque se recomienda guardarlo para vincular el resultado a una revisión identificable.
