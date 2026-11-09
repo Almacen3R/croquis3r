@@ -1,5 +1,6 @@
 const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea, zoomView} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
 const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta.url).search}`);
+const {isAnnotation,moveAnnotation,drawAnnotations}=await import(`./annotations.mjs${new URL(import.meta.url).search}`);
 
 const {packProject, projectFilename, downloadBlob, drawingPng, pdfFromPng} = await import(`./project-files.mjs${new URL(import.meta.url).search}`);
 
@@ -13,13 +14,14 @@ const state = {document: {version: 1, objects: []}, selected: null, tool: 'selec
   history: [], future: [], estimate: null, estimateTimer: null, estimateRequest: 0, view: [-2, -2, 16, 12]};
 let drag = null;
 let panDrag = null;
+let annotationFocus = null;
 let settingsDirty = false;
 let downloadInProgress = false;
 const walls = () => state.document.objects.filter(o => o.kind === 'wall');
-const allObjects = () => [...state.document.objects,...(state.document.columns||[])];
+const allObjects = () => [...state.document.objects,...(state.document.columns||[]),...(state.document.annotations||[])];
 const selected = () => allObjects().find(o => o.id === state.selected);
 const fmt = value => Number(value).toLocaleString('es-CR', {maximumFractionDigits: 2, minimumFractionDigits: 2});
-const typeName = kind => ({wall: 'Pared', door: 'Puerta', window: 'Ventana', column:'Columna'}[kind]);
+const typeName = kind => ({wall: 'Pared', door: 'Puerta', window: 'Ventana', column:'Columna',text:'Texto',arrow:'Flecha'}[kind]);
 const objectName = obj => obj.kind==='door' ? ([2,3].includes(obj.width) ? `${doorName(obj.width)} · ${fmt(obj.width)} m` : doorName(obj.width)) : obj.label || typeName(obj.kind);
 const basisName = basis => ({area: 'm² netos', length: 'm lineales', object: 'objeto'}[basis]);
 
@@ -65,6 +67,8 @@ function setTool(tool) {
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   svg.classList.toggle('drawing', tool !== 'select');
   $('tool-hint').textContent = ({select: 'Rueda para acercar o alejar; arrastra el fondo para mover la vista. Las bolitas cambian el largo.',
+    text:'Haz clic donde quieras escribir una nota. Después edita el texto en el panel derecho.',
+    arrow:'Marca el inicio de la flecha y luego el punto al que quieres señalar. Esc cancela.',
     wall: 'Haz clic en el inicio y luego en el final de la pared. Esc cancela el trazo.',
     column_C: 'Haz clic para colocar una columna C, en pared o independiente. Esc termina.',
     column_E: 'Haz clic para colocar una columna E, en pared o independiente. Esc termina.',
@@ -133,7 +137,8 @@ function render() {
   }
   // Sobre las paredes y aberturas, para que también funcionen en esquinas compartidas.
   const activeObject = selected();
-  if (activeObject && activeObject.kind!=='column' && state.tool === 'select') {
+  drawAnnotations(state.document.annotations||[],shape,$('scene'),state.tool==='select'?state.selected:null);
+  if (activeObject && !isAnnotation(activeObject) && activeObject.kind!=='column' && state.tool === 'select') {
     const wall = activeObject.kind === 'wall' ? activeObject : walls().find(w=>w.id===activeObject.wall_id);
     const points = activeObject.kind === 'wall' ? activeObject : openingPoints(activeObject,wall);
     for (const n of [1,2]) {
@@ -216,6 +221,20 @@ function renderInspector() {
   $('selected-title').textContent = objectName(obj);
   $('selection-label').textContent = obj.kind==='door'?doorName(obj.width):typeName(obj.kind);
   const fields = $('property-fields'); fields.replaceChildren();
+  document.querySelector('.legacy-rules').hidden=isAnnotation(obj)||obj.kind==='column';
+  $('properties').querySelector('button[type="submit"]').textContent=isAnnotation(obj)?'Aplicar anotación':'Aplicar medidas';
+  if(isAnnotation(obj)) {
+    const label=element('label',{},obj.kind==='text'?'Texto de la anotación':'Texto junto a la flecha · opcional');
+    const input=element('textarea',{name:'text',rows:4,maxlength:300,...(obj.kind==='text'?{required:''}:{})});input.value=obj.text||'';label.append(input);fields.append(label);
+    const grid=element('div',{class:'field-grid'});fields.append(grid);
+    field(grid,'font_size','Tamaño del texto · m',obj.font_size||.25,{type:'number',min:.12,max:1,step:'.01'});
+    const colorLabel=element('label',{},'Color'),color=element('select',{name:'color'});
+    for(const [value,text] of [['black','Negro'],['blue','Azul'],['red','Rojo']])color.append(element('option',{value},text));
+    color.value=obj.color||'black';colorLabel.append(color);grid.append(colorLabel);
+    const position=element('details',{class:'calculation-details'}),coordinates=element('div',{class:'field-grid'});position.append(element('summary',{},'Posición exacta · opcional'),coordinates);fields.append(position);
+    for(const key of obj.kind==='text'?['x','y']:['x1','y1','x2','y2'])field(coordinates,key,({x:'Posición X',y:'Posición Y',x1:'Inicio X',y1:'Inicio Y',x2:'Punta X',y2:'Punta Y'})[key]+' · m',obj[key],{type:'number',step:'.001',min:-100,max:100});
+    fields.append(element('p',{class:'fine-print'},'Enter aplica la anotación; Shift + Enter agrega otro renglón. Arrastra para mover; las bolitas ajustan la flecha. Se imprime sin sumar materiales. Máximo 300 caracteres y 8 renglones.'));return;
+  }
   field(fields, 'label', 'Nombre', obj.label, {maxlength: 100});
   const grid = element('div', {class: 'field-grid'}); fields.append(grid);
   if(obj.kind==='column') {
@@ -347,6 +366,8 @@ function tab(which) {
 }
 function fit() {
   const points=[...walls().flatMap(w=>[{x:w.x1,y:w.y1},{x:w.x2,y:w.y2}]),...(state.document.columns||[])];
+  const notesBox=$('scene').querySelector('[data-annotation]')?$('scene').getBBox():null;
+  if(notesBox)points.push({x:notesBox.x,y:notesBox.y},{x:notesBox.x+notesBox.width,y:notesBox.y+notesBox.height});
   if (!points.length) {state.view = [-2,-2,16,12]; applyView(); return;}
   const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
   const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
@@ -433,6 +454,22 @@ svg.addEventListener('pointerdown', action(event => {
     panDrag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,view:[...state.view],matrix:svg.getScreenCTM().inverse(),moved:false,clearOnClick:event.button===0&&state.tool==='select'&&!obj};
     svg.setPointerCapture(event.pointerId);svg.classList.add('dragging-view');return;
   }
+  if(state.tool==='text'||state.tool==='arrow') {
+    // Do not let the canvas's default pointer action steal focus from the editor.
+    event.preventDefault();
+    const raw=rawPoint(event),position={x:+raw.x.toFixed(3),y:+raw.y.toFixed(3)};
+    if(Math.abs(position.x)>100||Math.abs(position.y)>100)throw new Error('Coloca la anotación dentro de los límites del croquis (±100 m).');
+    if(state.tool==='arrow'&&!state.start){state.start=position;return;}
+    const annotation={id:uid(),kind:state.tool,text:state.tool==='text'?'Escribe aquí':'',color:'black',font_size:.25,
+      ...(state.tool==='text'?{x:position.x,y:position.y}:{x1:state.start.x,y1:state.start.y,x2:position.x,y2:position.y})};
+    if(annotation.kind==='arrow'&&Math.hypot(annotation.x2-annotation.x1,annotation.y2-annotation.y1)<.1)throw new Error('Separa los dos puntos al menos 0,10 m.');
+    if((state.document.annotations||[]).length>=100)throw new Error('El croquis admite hasta 100 anotaciones.');
+    mutate(()=>{state.document.annotations??=[];state.document.annotations.push(annotation);state.selected=annotation.id;});
+    tab('object');setTool('select');
+    annotationFocus=annotation.id;svg.setPointerCapture(event.pointerId);
+    const text=$('property-fields').querySelector('[name="text"]');text.focus({preventScroll:true});text.select();
+    message('Anotación colocada. Escribe en el panel derecho y pulsa Enter para aplicar. Shift + Enter agrega otro renglón.');return;
+  }
   if(state.tool.startsWith('column_')) {
     const location=columnPoint(rawPoint(event),walls(),state.estimate?.column_positions||[],$('snap').checked);
     const existing=(state.document.columns||[]).find(c=>Math.hypot(c.x-location.x,c.y-location.y)<.00001);
@@ -469,7 +506,8 @@ svg.addEventListener('pointermove', event => {
     if(Math.hypot(dx,dy)>4)panDrag.moved=true;
     state.view=[panDrag.view[0]-dx*m.a-dy*m.c,panDrag.view[1]-dx*m.b-dy*m.d,...panDrag.view.slice(2)];applyView();return;
   }
-  const p = drag && drag.original.kind !== 'wall' ? rawPoint(event) : point(event, drag?.id);
+  const p = (state.tool==='arrow'||(drag && drag.original.kind !== 'wall')) ? rawPoint(event) : point(event, drag?.id);
+  if(state.tool==='arrow'&&state.start){$('preview').replaceChildren();drawAnnotations([{id:'arrow-preview',kind:'arrow',text:'',x1:state.start.x,y1:state.start.y,x2:p.x,y2:p.y,color:'blue'}],shape,$('preview'));}
   if (state.tool === 'wall' && state.start) {
     const end = Math.abs(p.x-state.start.x) >= Math.abs(p.y-state.start.y) ? {x:p.x,y:state.start.y} : {x:state.start.x,y:p.y};
     $('preview').replaceChildren(); shape('line',{x1:state.start.x,y1:state.start.y,x2:end.x,y2:end.y,stroke:'#7ba57b','stroke-width':.08,'stroke-dasharray':'.15 .08'},$('preview'));
@@ -479,7 +517,9 @@ svg.addEventListener('pointermove', event => {
   let dx = p.x-drag.start.x, dy = p.y-drag.start.y;
   if (Math.hypot(dx,dy) < .03 && !drag.moved) return;
   drag.moved = true;
-  if(obj.kind==='column') {
+  if(isAnnotation(obj)) {
+    const moved=moveAnnotation(drag.original,dx,dy,drag.endpoint);if(!moved)return;Object.assign(obj,moved);
+  } else if(obj.kind==='column') {
     const location=columnPoint({x:drag.original.x+dx,y:drag.original.y+dy},walls(),state.estimate?.column_positions||[],$('snap').checked);
     if((state.document.columns||[]).some(c=>c.id!==obj.id&&Math.hypot(c.x-location.x,c.y-location.y)<.00001))return;
     Object.assign(obj,location);
@@ -507,14 +547,23 @@ function finishDrag() {
   if(finished?.moved){
     commit(finished.before);
     const obj=selected();
-    if(obj?.kind==='column')message(`Columna ${obj.column_type}: X ${fmt(obj.x)} m · Y ${fmt(obj.y)} m.`);
+    if(isAnnotation(obj))message('Anotación movida. Puedes deshacer el ajuste.');
+    else if(obj?.kind==='column')message(`Columna ${obj.column_type}: X ${fmt(obj.x)} m · Y ${fmt(obj.y)} m.`);
     else if(obj && obj.kind!=='wall') message(`${obj.kind==='door'?doorName(obj.width):typeName(obj.kind)}: módulo de ${fmt(obj.width)} m, inicio a ${fmt(obj.offset)} m de la pared. Puedes deshacer el ajuste.`);
   } else if(finished)render();
 }
 function finishPan() {const finished=panDrag;panDrag=null;svg.classList.remove('dragging-view');if(finished?.clearOnClick&&!finished.moved){state.selected=null;render();}}
-svg.addEventListener('pointerup',()=>{finishPan();finishDrag();});
+svg.addEventListener('pointerup',()=>{
+  finishPan();finishDrag();
+  const focusId=annotationFocus;annotationFocus=null;
+  if(focusId)requestAnimationFrame(()=>{
+    if(state.selected!==focusId)return;
+    const input=$('property-fields').querySelector('textarea[name="text"]');
+    if(input){input.focus({preventScroll:true});input.select();}
+  });
+});
 svg.addEventListener('lostpointercapture',finishPan);
-svg.addEventListener('pointercancel',() => {finishPan();if(drag){state.document=drag.before;drag=null;render();}});
+svg.addEventListener('pointercancel',() => {annotationFocus=null;finishPan();if(drag){state.document=drag.before;drag=null;render();}});
 document.querySelectorAll('[data-tool]').forEach(button => button.onclick=action(()=>{
   const tool=button.dataset.tool, obj=selected();
   if(['door','window'].includes(tool) && obj?.kind==='wall' && !state.document.objects.some(o=>o.wall_id===obj.id)) {
@@ -523,14 +572,20 @@ document.querySelectorAll('[data-tool]').forEach(button => button.onclick=action
 }));
 $('properties').onsubmit=action(async event=>{
   event.preventDefault();const obj=selected(),replacement=clone(obj),data=new FormData(event.target);
-  for (const [key,value] of data) replacement[key]=['label','panel_type','column_type'].includes(key)?value:Number(value);
+  for (const [key,value] of data) replacement[key]=['label','panel_type','column_type','text','color'].includes(key)?value:Number(value);
   if(obj.kind==='door' && ![.5,1,1.5,2,3].includes(replacement.width))throw new Error('Usa un módulo de puerta de 0,50, 1, 1,50, 2 o 3 m.');
   if(obj.kind==='column' && replacement.label===obj.label && /^Columna [CE] \d+$/.test(obj.label))replacement.label=obj.label.replace(/Columna [CE]/,`Columna ${replacement.column_type}`);
-  const candidate=snapshot();if(obj.kind==='column')candidate.columns=candidate.columns.map(o=>o.id===obj.id?replacement:o);
+  const candidate=snapshot();if(isAnnotation(obj))candidate.annotations=candidate.annotations.map(o=>o.id===obj.id?replacement:o);
+  else if(obj.kind==='column')candidate.columns=candidate.columns.map(o=>o.id===obj.id?replacement:o);
   else candidate.objects=candidate.objects.map(o=>o.id===obj.id?replacement:o);
   await api('/api/estimate/',{method:'POST',body:JSON.stringify({document:candidate})});
   mutate(()=>{state.document=candidate;});message(replacement.kind==='door'?`${objectName(replacement)}: medidas actualizadas.`:'Medidas actualizadas.');
 });
+$('properties').addEventListener('keydown',event=>{
+  if(event.target.matches('textarea[name="text"]')&&isAnnotation(selected())&&event.key==='Enter'&&!event.shiftKey&&!event.isComposing){
+    event.preventDefault();event.stopPropagation();$('properties').requestSubmit();
+  }
+},true);
 $('assignment-form').onsubmit=action(event=>{
   event.preventDefault();const obj=selected(),aid=Number($('article-select').value);
   if (!obj) return;
@@ -541,13 +596,19 @@ $('assignment-form').onsubmit=action(event=>{
 $('basis').onchange=()=>{if($('basis').value==='object'){$('factor').value='1';$('waste').value='0';}};
 $('duplicate').onclick=action(async()=>{
   const obj=selected();if(!obj)return;
+  if(isAnnotation(obj)) {
+    if((state.document.annotations||[]).length>=100)throw new Error('El croquis admite hasta 100 anotaciones.');
+    const copy=moveAnnotation(obj,.5,.5);if(!copy)throw new Error('No hay espacio para duplicar la anotación.');copy.id=uid();
+    mutate(()=>{state.document.annotations.push(copy);state.selected=copy.id;});return;
+  }
   if(obj.kind==='column'){setTool(`column_${obj.column_type}`);message('Haz clic donde quieres colocar la nueva columna.');return;}
   const copies=duplicateObjects(state.document.objects,obj);
   const candidate=snapshot();candidate.objects.push(...copies);
   await api('/api/estimate/',{method:'POST',body:JSON.stringify({document:candidate})});
   mutate(()=>{state.document=candidate;state.selected=copies[0].id;});
 });
-$('delete').onclick=()=>{const obj=selected();if(obj)mutate(()=>{if(obj.kind==='column')state.document.columns=state.document.columns.filter(c=>c.id!==obj.id);
+$('delete').onclick=()=>{const obj=selected();if(obj)mutate(()=>{if(isAnnotation(obj))state.document.annotations=state.document.annotations.filter(a=>a.id!==obj.id);
+  else if(obj.kind==='column')state.document.columns=state.document.columns.filter(c=>c.id!==obj.id);
   else state.document.objects=state.document.objects.filter(o=>o.id!==obj.id&&o.wall_id!==obj.id);state.selected=null;});};
 $('undo').onclick=()=>{if(settingsDirty){settingsDirty=false;render();queueEstimate();message('Configuración pendiente descartada.');return;}if(!state.history.length)return;state.future.push(snapshot());state.document=state.history.pop();state.selected=null;markDirty();render();message("Cambio deshecho.");};
 $('redo').onclick=()=>{if(!state.future.length)return;state.history.push(snapshot());state.document=state.future.pop();state.selected=null;markDirty();render();message("Cambio rehecho.");};
@@ -557,6 +618,10 @@ $('save-object-template').onclick=action(async()=>{const obj=selected();if(obj?.
 $('open').onclick=action(async()=>{const id=$('saved-list').value;if(!id)throw new Error('Selecciona un croquis de la biblioteca.');if(!discardAllowed())return;const data=await api(`/api/sketches/${id}/`);replaceDocument(data.document,data.is_template?`${data.name} · copia`:data.name,data.is_template?null:data);});
 $('new').onclick=()=>{if(discardAllowed())replaceDocument({version:1,objects:[]},'Nuevo croquis');};
 $('example').onclick=()=>{if(discardAllowed())example();};
+$('annotations-toggle').onclick=()=>{
+  const show=$('annotation-tools').hidden;$('annotation-tools').hidden=!show;$('annotations-toggle').setAttribute('aria-expanded',String(show));
+  setTool(show?'text':'select');
+};
 $('project-name').oninput=markDirty;
 $('observations').oninput=()=>{state.document.observations=$('observations').value;$('observations-print').textContent=$('observations').value;markDirty();};
 $('tab-object').onclick=()=>tab('object');$('tab-materials').onclick=()=>tab('materials');

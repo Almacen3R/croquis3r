@@ -143,3 +143,7 @@ El editor incluye **Vista 3D** para revisar paredes, aberturas, columnas dibujad
 Segunda etapa local: **Acabados y techo** permite elegir pintura, piso y cubierta plana o a dos aguas, y **Entrar a la casa** habilita el recorrido a altura de persona con colisiones. Las preferencias se guardan con el croquis y sus archivos portátiles. Ver [uso y límites de la presentación 3D](docs/presentacion-3d-etapa2-2026-11-07.md). Blender y el video siguen pendientes.
 
 Tercera etapa local: imágenes PNG con **Blender**, cola en segundo plano, historial privado y descarga desde el visor. Incluye un trabajador opcional para Docker; su ejecución Linux y el despliegue siguen pendientes. Ver [renderizado con Blender](docs/renderizado-blender-2026-11-07.md). El video continúa pendiente.
+
+## Anotaciones en el plano
+
+El botón **Anotaciones** permite colocar textos y flechas, moverlos, editar color/tamaño y guardarlos con el proyecto. Se incluyen en PNG/PDF y archivos portátiles, sin alterar materiales. Ver [uso y verificación de anotaciones](docs/anotaciones-2026-11-07.md). Esta actualización está probada en local y aún no desplegada.

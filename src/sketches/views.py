@@ -75,7 +75,7 @@ def editor(request):
     if not authorized(request):
         return redirect_to_login(request.get_full_path())
     assets = settings.BASE_DIR / "src/static/croquis"
-    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs", "http.mjs", "project-files.mjs", "panels.mjs", "scene3d.mjs", "viewer3d.mjs", "viewer3d.css", "presentation3d.mjs", "renders3d.mjs"))
+    version = max((assets / name).stat().st_mtime_ns for name in ("editor.js", "editor.css", "geometry.mjs", "http.mjs", "project-files.mjs", "panels.mjs", "scene3d.mjs", "viewer3d.mjs", "viewer3d.css", "presentation3d.mjs", "renders3d.mjs", "annotations.mjs"))
     return render(request, "sketches/editor.html", {"editor_asset_version": str(version),
         "csrf_cookie_name": settings.CSRF_COOKIE_NAME})
 

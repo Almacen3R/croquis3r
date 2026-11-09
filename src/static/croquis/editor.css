@@ -30,3 +30,4 @@
 #canvas-taller,#canvas-shorter{font-size:11px;border:1px solid #bdcbbf;background:#e9efe8;padding:6px 8px;white-space:nowrap}
 
 .canvas-height-buttons{display:inline-flex;gap:5px;white-space:nowrap}
+#annotations-toggle[aria-expanded=true],#annotation-tools button.active{background:var(--brand-soft,#fff3a6);border-color:#b9a944}

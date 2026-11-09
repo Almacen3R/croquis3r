@@ -114,6 +114,33 @@ def validate_document(document, articles):
                 if max(a1, b1) < min(a2, b2):
                     raise InvalidDocument("Hay paredes superpuestas. Muévalas para evitar contar material dos veces.")
     result = {"version": 1, "objects": cleaned}
+    if 'annotations' in document:
+        annotations = document['annotations']
+        if not isinstance(annotations, list) or len(annotations) > 100:
+            raise InvalidDocument('El croquis admite hasta 100 anotaciones.')
+        result['annotations'] = []
+        for annotation in annotations:
+            if not isinstance(annotation, dict) or annotation.get('kind') not in ('text', 'arrow'):
+                raise InvalidDocument('Anotación desconocida.')
+            aid = identifier(annotation.get('id'))
+            if aid in seen:
+                raise InvalidDocument('Hay identificadores de objeto repetidos.')
+            seen.add(aid)
+            text = annotation.get('text', '')
+            if not isinstance(text, str) or len(text) > 300 or len(text.splitlines()) > 8 or any(ord(c)<32 and c not in '\n\r\t' for c in text):
+                raise InvalidDocument('Cada anotación admite hasta 300 caracteres y 8 renglones.')
+            if annotation['kind'] == 'text' and not text.strip():
+                raise InvalidDocument('Escribe el texto de la anotación.')
+            color = annotation.get('color', 'black')
+            if color not in ('black', 'blue', 'red'):
+                raise InvalidDocument('Color de anotación inválido.')
+            item = {'id':aid, 'kind':annotation['kind'], 'text':text, 'color':color,
+                    'font_size':float(number(annotation.get('font_size', .25), 'Tamaño del texto', .12, 1))}
+            for key in (('x','y') if item['kind']=='text' else ('x1','y1','x2','y2')):
+                item[key] = float(number(annotation.get(key), 'Posición de anotación', -100, 100))
+            if item['kind']=='arrow' and wall_length(item) < Decimal('.1'):
+                raise InvalidDocument('La flecha debe medir al menos 0,10 m.')
+            result['annotations'].append(item)
     if 'presentation3d' in document:
         result['presentation3d'] = validate_presentation3d(document['presentation3d'])
     if 'observations' in document:
