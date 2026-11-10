@@ -7,7 +7,13 @@ test "$(id -u)" = 0 || { echo 'Ejecutar con sudo desde una terminal del administ
 test "$(hostname)" = servidor4 || { echo 'Servidor incorrecto.' >&2; exit 1; }
 test "$#" = 0 || { echo 'Este instalador no admite argumentos.' >&2; exit 1; }
 python3 - <<'PY'
-import configparser, hashlib, json, os, pathlib, stat, subprocess
+import configparser, fcntl, hashlib, json, os, pathlib, re, stat, subprocess
+
+update_lock=open('/run/lock/croquis3r-update.lock','a')
+fcntl.flock(update_lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
+active=subprocess.check_output(['/usr/bin/systemctl','list-units','--state=activating,active,deactivating',
+    '--no-legend','--plain','croquis3r-update*.service'],text=True)
+assert not active.strip(), 'Hay unidades de actualización activas; revisar antes de instalar.'
 
 commit='897308d80fbfe191da5590fd37983de567a16494'
 source=pathlib.Path('/home/administrador/croquis3r-update-897308d80fbf')
@@ -88,6 +94,7 @@ Description=Actualizacion aprobada de Croquis3R 897308d80fbf
 After=docker.service network-online.target
 Wants=network-online.target
 Requires=docker.service
+ConditionPathExists=!{dest}/attempted
 
 [Service]
 Type=oneshot
@@ -95,15 +102,26 @@ User=root
 Group=root
 UMask=0077
 WorkingDirectory={dest}
+ExecStartPre=/usr/bin/touch {dest}/attempted
 ExecStart=/bin/bash {dest}/update-server-lan.sh
 ExecStartPost=/usr/bin/touch {dest}/completed
 TimeoutStartSec=45min
-RemainAfterExit=yes
+RemainAfterExit=no
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=croquis3r-update
 '''
 write_once(pathlib.Path('/etc/systemd/system')/unit,unit_body.encode(),0o644)
+# Retire every historical updater, including failed attempts. Keep their files
+# and journals for diagnosis; Docker/service restarts must not replay them.
+for previous in pathlib.Path('/etc/systemd/system').glob('croquis3r-update*.service'):
+    if previous.name==unit:
+        continue
+    assert re.fullmatch(r'croquis3r-update(?:-[0-9a-f]{12})?\.service',previous.name), 'Unidad inesperada: '+previous.name
+    dropin=previous.parent/(previous.name+'.d')
+    private_dir(dropin)
+    body=b'[Unit]\nConditionPathExists=/usr/local/lib/croquis3r-approved/historical-replay-not-authorized\n'
+    write_once(dropin/'99-retired.conf',body,0o644)
 runner=f'''#!/bin/bash
 set -euo pipefail
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
@@ -111,6 +129,7 @@ test "$#" = 1 || exit 64
 case "$1" in
  start)
    if test -f {dest}/completed; then echo 'La actualizacion aprobada ya termino.'; exit 0; fi
+   if test -f {dest}/attempted; then echo 'El paquete ya se intento; revisar el registro y preparar otro paquete.' >&2; exit 1; fi
    /usr/bin/systemctl start --no-block {unit}
    echo 'Actualizacion iniciada en segundo plano; consultar status o logs.'
    ;;

@@ -7,6 +7,8 @@ app=/opt/apps/croquis3r
 data=/data/projects/croquis3r
 test "$(id -u)" = 0 || { echo 'Ejecuta con sudo.' >&2; exit 1; }
 test "$(hostname)" = servidor4 || { echo 'Servidor incorrecto.' >&2; exit 1; }
+exec 9>/run/lock/croquis3r-update.lock
+flock -n 9 || { echo 'Ya hay otra actualización de Croquis3R en ejecución.' >&2; exit 1; }
 test "$(findmnt -n -o UUID /data)" = f47d4231-2fcd-4624-b038-3fea030a37b5 || { echo 'Montaje /data incorrecto.' >&2; exit 1; }
 test -f "$app/.env.production" || { echo 'Falta la instalación existente.' >&2; exit 1; }
 python3 - "$stage" <<'PY'
@@ -77,6 +79,10 @@ g bundle verify "$stage/croquis3r.bundle"
 bundle_commit="$(g bundle list-heads "$stage/croquis3r.bundle" refs/heads/main | awk '{print $1}')"
 test "$bundle_commit" = "$commit" || { echo 'El commit del bundle no coincide.' >&2; exit 1; }
 g fetch "$stage/croquis3r.bundle" refs/heads/main
+# A normal update must never restore an older commit over a newer checkout.
+if g rev-parse --verify HEAD >/dev/null 2>&1; then
+  g merge-base --is-ancestor HEAD "$commit" || { echo 'La versión solicitada retrocede o diverge del código instalado.' >&2; exit 1; }
+fi
 new_release="git-${commit:0:12}"
 switched=0
 db_switched=0
