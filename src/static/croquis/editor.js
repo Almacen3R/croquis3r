@@ -1,4 +1,4 @@
-const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea, zoomView} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
+const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea, zoomView, structuralHit} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
 const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta.url).search}`);
 const {isAnnotation,moveAnnotation,drawAnnotations}=await import(`./annotations.mjs${new URL(import.meta.url).search}`);
 
@@ -131,7 +131,7 @@ function render() {
     const active=column.id===state.selected, color=column.column_type==='C'?'#287b63':'#8b527c';
     const group=shape('g',{'data-object':column.id,cursor:'move','data-column-type':column.column_type});
     shape('title',{},group,`${column.label} · arrastra para mover`);
-    shape('circle',{cx:column.x,cy:column.y,r:.23,fill:'transparent','pointer-events':'all'},group);
+    shape('circle',{cx:column.x,cy:column.y,r:.12,fill:'transparent','pointer-events':'all'},group);
     shape('rect',{x:column.x-.105,y:column.y-.105,width:.21,height:.21,rx:.025,fill:active?color:'#fff',stroke:color,'stroke-width':active?.04:.025},group);
     shape('text',{x:column.x,y:column.y+.045,'text-anchor':'middle','font-size':.13,'font-weight':'bold',fill:active?'#fff':color,'pointer-events':'none'},group,column.column_type);
   }
@@ -448,7 +448,9 @@ function example() {
 svg.addEventListener('pointerdown', action(event => {
   if (event.button !== 0 && event.button !== 1) return;
   const p = point(event), target = event.target.closest('[data-object]');
-  const obj = target && allObjects().find(o => o.id === target.dataset.object);
+  const hitId=target?.dataset.object;
+  const obj = structuralHit(rawPoint(event),state.document.objects,state.document.columns||[],hitId,state.tool) ||
+    (state.tool==='select' ? (state.document.annotations||[]).find(a=>a.id===hitId) : null);
   if(event.button===1 || state.tool==='pan' || (state.tool==='select' && !obj)) {
     event.preventDefault();
     panDrag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,view:[...state.view],matrix:svg.getScreenCTM().inverse(),moved:false,clearOnClick:event.button===0&&state.tool==='select'&&!obj};

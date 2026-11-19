@@ -305,3 +305,27 @@ export function floorArea(walls, {includeRegions = false} = {}) {
   return {area:area>eps?+area.toFixed(6):null,partial:used.size<edges.size,
     ...(includeRegions?{regions:regions.map(face=>face.ring.map(p=>({x:p.x,y:p.y})))}:{})};
 }
+
+// Resolve structural clicks independently of SVG paint order and column halos.
+export function wallAtPoint(point, walls, tolerance = .125) {
+  let best = null, distance = Infinity;
+  for (const wall of walls) {
+    const dx=wall.x2-wall.x1, dy=wall.y2-wall.y1, squared=dx*dx+dy*dy;
+    if (!squared) continue;
+    const t=Math.max(0,Math.min(1,((point.x-wall.x1)*dx+(point.y-wall.y1)*dy)/squared));
+    const d=Math.hypot(point.x-wall.x1-t*dx,point.y-wall.y1-t*dy);
+    if (d<=Math.max(tolerance,(wall.thickness||.12)/2)+1e-9 && d<distance) { best=wall; distance=d; }
+  }
+  return best;
+}
+export function structuralHit(point, objects, columns, hitId, tool='select') {
+  const hit=[...objects,...columns].find(obj=>obj.id===hitId) || null;
+  const walls=objects.filter(obj=>obj.kind==='wall');
+  if (tool==='door' || tool==='window') {
+    return wallAtPoint(point,walls) || (['door','window'].includes(hit?.kind) ? walls.find(w=>w.id===hit.wall_id) : null) || null;
+  }
+  if (hit?.kind==='column' && (Math.abs(point.x-hit.x)>.105 || Math.abs(point.y-hit.y)>.105)) {
+    return wallAtPoint(point,walls) || hit;
+  }
+  return hit;
+}

@@ -23,3 +23,6 @@ staticfiles/
 CONEXION_SERVIDOR.md
 MEMORIA_SERVIDOR_PRODUCCION.md
 GUIA_ARQUITECTURA_APLICACIONES.md
+
+# Credenciales de usuarios locales; nunca publicar.
+usuarios.txt
