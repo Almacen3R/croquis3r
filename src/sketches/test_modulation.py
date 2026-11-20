@@ -23,6 +23,17 @@ def doc(*objects, **settings):
 
 
 class ModulationTests(SimpleTestCase):
+    def test_thirteen_meter_wall_keeps_material_breakdown_at_all_supported_heights(self):
+        for height in (2.5, 2.7, 2.9):
+            for preferred in ('1.5', '2'):
+                with self.subTest(height=height, preferred=preferred):
+                    result = calculate_modulation(doc(wall(x2=13, height=height), max_span=preferred), {})
+                    self.assertEqual(result['status'], 'ready')
+                    self.assertEqual(result['issues'], [])
+                    self.assertEqual(len(result['items']), 8)
+                    self.assertEqual(sum(segment['length'] for segment in result['segments']), 13)
+                    self.assertEqual(result['beam_layers'], 2 if height == 2.9 else 1)
+
     def test_new_default_uses_one_point_five_without_shortening_wall_or_door(self):
         data = {"version": 1, "objects": [wall()]}
         result = calculate_modulation(data, {})

@@ -6,6 +6,8 @@ const {packProject, projectFilename, downloadBlob, drawingPng, pdfFromPng} = awa
 
 const {rotateDrawingLeft}=await import(`./rotation.mjs${new URL(import.meta.url).search}`);
 
+const {recalculateWithSettings}=await import(`./calculation-flow.mjs${new URL(import.meta.url).search}`);
+
 const $ = id => document.getElementById(id);
 const {setupPanels}=await import(`./panels.mjs${new URL(import.meta.url).search}`);
 setupPanels(document.querySelector('.workspace'));
@@ -290,7 +292,7 @@ function queueEstimate() {
 async function estimate() {
   $('pricing').replaceChildren();
   clearTimeout(state.estimateTimer);
-  if(settingsDirty){$('estimate-status').textContent='Configuración pendiente: pulsa Aplicar configuración.';$('export-csv').disabled=true;return;}
+  if(settingsDirty){$('estimate-status').textContent='Configuración pendiente: pulsa Recalcular o Aplicar configuración.';$('export-csv').disabled=true;return;}
   const request = ++state.estimateRequest;
   try {
     const result = await api('/api/ticoblock-estimate/', {method:'POST', body:JSON.stringify({document:state.document})});
@@ -639,7 +641,7 @@ $('rotate-left').onclick=action(async()=>{
   mutate(()=>{state.document=candidate;});setTool('select');fit();
   message('Croquis girado 90° a la izquierda. Puedes deshacer el giro. Guarda para conservarlo.');
 });
-$('recalculate').onclick=()=>estimate();$('dimensions').onchange=render;
+$('recalculate').onclick=action(()=>recalculateWithSettings(settingsDirty,applyModulationSettings,estimate));$('dimensions').onchange=render;
 // Visual preference only: hiding the grid does not change snapping or the drawing.
 try {$('show-grid').checked=localStorage.getItem('croquis3r-show-grid')!=='false';}catch{}
 function updateGridVisibility() {
@@ -660,7 +662,7 @@ function markSettingsPending(){
   state.estimate=null;$('modulation').replaceChildren();$('material-items').replaceChildren();$('calculation-details').replaceChildren();
   $('material-weight').textContent=''; $('beam-summary').textContent='';
   $('material-count').textContent='—';$('export-csv').disabled=true;
-  $('estimate-status').textContent='Configuración pendiente: pulsa Aplicar configuración.';
+  $('estimate-status').textContent='Configuración pendiente: pulsa Recalcular o Aplicar configuración.';
 }
 $('modulation-settings').addEventListener('input',event=>{if(event.target.id!=='max-span')markSettingsPending();});
 $('modulation-settings').addEventListener('change',event=>{
@@ -671,14 +673,20 @@ $('max-span').addEventListener('change',()=>{
   mutate(()=>{state.document.ticoblock={...(state.document.ticoblock||{}),max_span:maximum};});
   message(settingsDirty?'Máximo actualizado. Aplica también los cambios pendientes de altura o columnas.':'Máximo de paño actualizado. Los materiales se actualizan automáticamente.');
 });
-$('modulation-settings').onsubmit=action(async event=>{
-  event.preventDefault(); const candidate=snapshot();
+async function applyModulationSettings(){
+  if(!$('modulation-settings').reportValidity())return false;
+  const before=snapshot(),candidate=clone(before);
+  const settingsValues=()=>JSON.stringify([...$('modulation-settings').querySelectorAll('input,select')].map(input=>[input.id,input.value]));
+  const signature=settingsValues();
   candidate.ticoblock={max_span:$('max-span').value,floor_level:Number($('floor-level').value),block_family:$('house-thickness').value==='0.1'?'10':'12'};
   for(const key of ['linear_columns','t_columns'])candidate.ticoblock[key]=Number($(key.replaceAll('_','-')).value);
   for(const wall of candidate.objects.filter(o=>o.kind==='wall')){wall.height=Number($('house-height').value);wall.thickness=Number($('house-thickness').value);}
   await api('/api/estimate/',{method:'POST',body:JSON.stringify({document:candidate})});
+  if(JSON.stringify(state.document)!==JSON.stringify(before)||settingsValues()!==signature)throw new Error('El croquis o la configuración cambiaron durante la validación. Pulsa Recalcular otra vez.');
   settingsDirty=false;mutate(()=>{state.document=candidate;});message('Configuración aplicada. Revisa la propuesta en Materiales.');
-});
+  return true;
+}
+$('modulation-settings').onsubmit=action(async event=>{event.preventDefault();await applyModulationSettings();});
 $('zoom-in').onclick=()=>zoom(.8);$('zoom-out').onclick=()=>zoom(1.25);$('fit').onclick=fit;
 $('download-project').onclick=action(()=>{
   if(settingsDirty)throw new Error('Aplica la configuración pendiente antes de descargar el proyecto.');
