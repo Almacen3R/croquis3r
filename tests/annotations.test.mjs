@@ -16,3 +16,23 @@ test('portable projects retain annotations and the 3D scene ignores them',()=>{
   assert.deepEqual(JSON.parse(packProject('Prueba',doc,[])).document,doc);
   assert.equal(buildHouseScene(doc).boxes.length,0);
 });
+
+
+test('Enter inserts a newline; Ctrl/Command Enter applies, without interrupting IME',async()=>{
+  const {annotationSubmitKey}=await import('../src/static/croquis/annotations.mjs');
+  assert.equal(Boolean(annotationSubmitKey({key:'Enter'})),false);
+  assert.equal(Boolean(annotationSubmitKey({key:'Enter',shiftKey:true})),false);
+  assert.equal(annotationSubmitKey({key:'Enter',ctrlKey:true}),true);
+  assert.equal(annotationSubmitKey({key:'Enter',metaKey:true}),true);
+  assert.equal(annotationSubmitKey({key:'Enter',ctrlKey:true,isComposing:true}),false);
+});
+test('SVG text preserves blank lines and CRLF with explicit baselines for PNG/PDF',async()=>{
+  const {drawAnnotations}=await import('../src/static/croquis/annotations.mjs');
+  const nodes=[];
+  const draw=(tag,attrs,parent,text)=>{const node={tag,attrs,text,getBBox:()=>({x:0,y:0,width:2,height:2})};nodes.push(node);return node;};
+  drawAnnotations([{id:'n',kind:'text',x:2,y:3,font_size:.25,text:'Primera\r\n\r\nTercera\nCuarta'}],draw,{});
+  const lines=nodes.filter(n=>n.tag==='tspan');
+  assert.deepEqual(lines.map(n=>n.text),['Primera',' ','Tercera','Cuarta']);
+  assert.deepEqual(lines.map(n=>n.attrs.x),[2,2,2,2]);
+  assert.deepEqual(lines.map(n=>n.attrs.y),[3,3.325,3.65,3.975]);
+});

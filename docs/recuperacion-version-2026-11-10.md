@@ -11,4 +11,10 @@ El diagnóstico administrativo solicitado (`git status --short` y `git diff --st
 - Instalador y actualizador comparten un bloqueo exclusivo por proyecto. Las actualizaciones futuras rechazan commits que no desciendan del checkout instalado.
 - Se mantienen respaldo PostgreSQL, verificación del volcado, comprobación de registros, pruebas independientes, render Linux y procedimiento de reversión existentes. No se restauran bases ni se importan datos locales.
 
-Pendiente de autorización administrativa y verificación posterior. Este documento no certifica que la recuperación ya esté aplicada.
+## Recuperación aplicada y verificada
+
+El paquete `950bb3a197b9` terminó el 10 de noviembre a las 17:30:26 UTC con `Result=success` y `ExecMainStatus=0`. La aplicación y el trabajador quedaron saludables; Blender disponible. Se conservaron 4 artículos, 4 atenciones, 1 plantilla de objeto y 16 croquis. Respaldo previo: `/data/projects/croquis3r/backup-staging/update-20261110T172935Z`.
+
+Se comprobó la unidad nueva con marca `attempted` y `RemainAfterExit=no`, así como la existencia del complemento `99-retired.conf` de la unidad histórica. Docker está habilitado al iniciar el servidor. Los archivos Compose configuran aplicación, PostgreSQL y trabajador con `restart: unless-stopped`.
+
+La consulta ampliada del registro confirma que Docker se detuvo a las 22:44:12 UTC del 9 de noviembre y arrancó de nuevo a las 22:44:45 UTC; inmediatamente se iniciaron las unidades históricas. Esto coincide con la actualización/reinicio de servicios informada por el responsable. El problema era la repetición de trabajos de despliegue, no la política de arranque de los contenedores. No se ha probado deliberadamente un reinicio de Docker ni del servidor después de la corrección.

@@ -8,6 +8,6 @@ No cambia el documento, las cantidades, los precios ni los permisos. Sin migraci
 
 Validación: 155 pruebas Django y 64 pruebas JavaScript aprobadas; sintaxis del editor comprobada. Los cuatro casos nuevos cubren el margen de columna, su figura visible, ambas herramientas de abertura, paredes verticales invertidas y diagonales, esquinas, extremos, columnas independientes y clics fuera de paredes. No se completó la prueba visual: el proceso del navegador de pruebas terminó inesperadamente en ambos intentos.
 
-Cuenta pleon: ya existe en producción como vendedor activo, sin permisos administrativos. La contraseña solicitada en el archivo privado fue rechazada por el formulario de Django por similitud con el usuario; no se cambió. Pendiente de otra contraseña o elección de una temporal. No guardar contraseñas en esta documentación.
+Cuenta pleon: ya existe en producción como vendedor activo, sin permisos administrativos. La contraseña solicitada en el archivo privado fue rechazada por el formulario de Django por similitud con el usuario; no se cambió. El responsable eligió una contraseña temporal: se generó, se estableció mediante Django Admin y se verificaron ingreso y acceso a la API de croquis. Se conservaron sus permisos. La clave está únicamente en .deploy/acceso-pleon-temporal.txt, excluido de Git. No guardar contraseñas en esta documentación.
 
-Estado: corrección comprobada y pendiente de despliegue.
+Estado: desplegado y verificado en producción con cd4df3a2666a, el 19 de noviembre. Después de la clave temporal, se estableció y verificó la nueva contraseña aportada en usuarios.txt; la temporal dejó de ser vigente.

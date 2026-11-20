@@ -1,8 +1,10 @@
 const {length, clone, uid, snapPoint, dimensionLayout, openingPoints, duplicateObjects, resizeEndpoint, editOpening, placeOpening, transferOpening, doorSwing, columnPoint, doorName, floorArea, zoomView, structuralHit} = await import(`./geometry.mjs${new URL(import.meta.url).search}`);
 const {requestJson, cookieValue} = await import(`./http.mjs${new URL(import.meta.url).search}`);
-const {isAnnotation,moveAnnotation,drawAnnotations}=await import(`./annotations.mjs${new URL(import.meta.url).search}`);
+const {isAnnotation,moveAnnotation,drawAnnotations,annotationSubmitKey}=await import(`./annotations.mjs${new URL(import.meta.url).search}`);
 
 const {packProject, projectFilename, downloadBlob, drawingPng, pdfFromPng} = await import(`./project-files.mjs${new URL(import.meta.url).search}`);
+
+const {rotateDrawingLeft}=await import(`./rotation.mjs${new URL(import.meta.url).search}`);
 
 const $ = id => document.getElementById(id);
 const {setupPanels}=await import(`./panels.mjs${new URL(import.meta.url).search}`);
@@ -233,7 +235,7 @@ function renderInspector() {
     color.value=obj.color||'black';colorLabel.append(color);grid.append(colorLabel);
     const position=element('details',{class:'calculation-details'}),coordinates=element('div',{class:'field-grid'});position.append(element('summary',{},'Posición exacta · opcional'),coordinates);fields.append(position);
     for(const key of obj.kind==='text'?['x','y']:['x1','y1','x2','y2'])field(coordinates,key,({x:'Posición X',y:'Posición Y',x1:'Inicio X',y1:'Inicio Y',x2:'Punta X',y2:'Punta Y'})[key]+' · m',obj[key],{type:'number',step:'.001',min:-100,max:100});
-    fields.append(element('p',{class:'fine-print'},'Enter aplica la anotación; Shift + Enter agrega otro renglón. Arrastra para mover; las bolitas ajustan la flecha. Se imprime sin sumar materiales. Máximo 300 caracteres y 8 renglones.'));return;
+    fields.append(element('p',{class:'fine-print'},'Enter agrega otro renglón; Ctrl + Enter aplica la anotación. Arrastra para mover; las bolitas ajustan la flecha. Se imprime sin sumar materiales. Máximo 300 caracteres y 8 renglones.'));return;
   }
   field(fields, 'label', 'Nombre', obj.label, {maxlength: 100});
   const grid = element('div', {class: 'field-grid'}); fields.append(grid);
@@ -470,7 +472,7 @@ svg.addEventListener('pointerdown', action(event => {
     tab('object');setTool('select');
     annotationFocus=annotation.id;svg.setPointerCapture(event.pointerId);
     const text=$('property-fields').querySelector('[name="text"]');text.focus({preventScroll:true});text.select();
-    message('Anotación colocada. Escribe en el panel derecho y pulsa Enter para aplicar. Shift + Enter agrega otro renglón.');return;
+    message('Anotación colocada. Escribe en el panel derecho. Enter agrega otro renglón; Ctrl + Enter aplica la anotación.');return;
   }
   if(state.tool.startsWith('column_')) {
     const location=columnPoint(rawPoint(event),walls(),state.estimate?.column_positions||[],$('snap').checked);
@@ -584,7 +586,7 @@ $('properties').onsubmit=action(async event=>{
   mutate(()=>{state.document=candidate;});message(replacement.kind==='door'?`${objectName(replacement)}: medidas actualizadas.`:'Medidas actualizadas.');
 });
 $('properties').addEventListener('keydown',event=>{
-  if(event.target.matches('textarea[name="text"]')&&isAnnotation(selected())&&event.key==='Enter'&&!event.shiftKey&&!event.isComposing){
+  if(event.target.matches('textarea[name="text"]')&&isAnnotation(selected())&&annotationSubmitKey(event)){
     event.preventDefault();event.stopPropagation();$('properties').requestSubmit();
   }
 },true);
@@ -627,6 +629,16 @@ $('annotations-toggle').onclick=()=>{
 $('project-name').oninput=markDirty;
 $('observations').oninput=()=>{state.document.observations=$('observations').value;$('observations-print').textContent=$('observations').value;markDirty();};
 $('tab-object').onclick=()=>tab('object');$('tab-materials').onclick=()=>tab('materials');
+$('rotate-left').onclick=action(async()=>{
+  if(!allObjects().length){message('Dibuja o abre un croquis para girarlo.');return;}
+  if(settingsDirty)throw new Error('Aplica la configuración pendiente antes de girar el croquis.');
+  if(drag||panDrag)throw new Error('Termina el movimiento antes de girar el croquis.');
+  const before=snapshot(),candidate=rotateDrawingLeft(before);
+  await api('/api/estimate/',{method:'POST',body:JSON.stringify({document:candidate})});
+  if(settingsDirty||JSON.stringify(state.document)!==JSON.stringify(before))throw new Error('El croquis cambió mientras se preparaba el giro. Vuelve a pulsar Girar.');
+  mutate(()=>{state.document=candidate;});setTool('select');fit();
+  message('Croquis girado 90° a la izquierda. Puedes deshacer el giro. Guarda para conservarlo.');
+});
 $('recalculate').onclick=()=>estimate();$('dimensions').onchange=render;
 // Visual preference only: hiding the grid does not change snapping or the drawing.
 try {$('show-grid').checked=localStorage.getItem('croquis3r-show-grid')!=='false';}catch{}
