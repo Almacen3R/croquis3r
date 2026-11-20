@@ -50,6 +50,27 @@ class PdfExportTests(TestCase):
             self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
             quote.assert_called_once()
 
+    def test_materials_pdf_includes_trusted_height_and_grouped_panel_calculation(self):
+        from .test_modulation import doc, wall
+        from .pdf_export import materials_pdf, panel_calculation_rows
+        data = {'name': 'Tapia 13 m', 'document': doc(wall(x2=13, height=2.7), linear_columns=8, t_columns=0),
+                'with_prices': False, 'height_label': 'Altura inventada'}
+        for priced in (False, True):
+            data['with_prices'] = priced
+            with patch('sketches.views.materials_pdf', wraps=materials_pdf) as render:
+                response = self.client.post('/api/export-materials-pdf/', json.dumps(data), content_type='application/json')
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
+                calculation = render.call_args.kwargs['calculation']
+                self.assertEqual(calculation['height_label'], '2,70 m')
+                self.assertEqual(calculation['panels'], 7)
+                grouped = panel_calculation_rows(calculation)
+                two = next(row for row in grouped if row['panels'] == 6)
+                one = next(row for row in grouped if row['panels'] == 1)
+                self.assertEqual((two['long_each'], two['short_each'], two['long_total'], two['short_total']), (36, 12, 216, 72))
+                self.assertEqual((one['long_each'], one['short_each']), (12, 12))
+                self.assertNotIn('warnings', render.call_args.kwargs)
+
     def test_materials_rejects_invalid_document_and_requires_authentication(self):
         data={'name':'Casa','document':{'version':1,'objects':[]},'with_prices':'yes'}
         self.assertEqual(self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json').status_code,400)

@@ -26,3 +26,7 @@ GUIA_ARQUITECTURA_APLICACIONES.md
 
 # Credenciales de usuarios locales; nunca publicar.
 usuarios.txt
+
+# Muestras generadas y archivo privado del servidor.
+/output/
+credenciales servidor de aplicaciones.txt

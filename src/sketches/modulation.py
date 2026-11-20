@@ -200,7 +200,7 @@ def calculate_modulation(document, articles):
     return {"status": "ready", "columns_pending": columns_pending, "version": result["version"], "segments": segments,
         "block_family": result["block_family"], "block_long_name": result["block_long_name"], "block_short_name": result["block_short_name"],
         "weight_note": "Peso de los productos de 10 cm pendiente de confirmar." if result["block_family"]=="10" else "Peso pendiente de confirmar las cantidades de columnas.",
-        "beam_layers": result["beam_layers"], "beam_details": result["beam_details"], "beam_basis": result["beam_basis"],
+        "height_label": result["height_label"], "beam_layers": result["beam_layers"], "beam_details": result["beam_details"], "beam_basis": result["beam_basis"],
         "column_mode": "drawn" if drawn_columns is not None else "manual",
         "drawn_column_count": len(drawn_columns or []), "standalone_column_count": len(standalone_columns),
         "missing_column_positions": missing_columns,

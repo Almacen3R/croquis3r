@@ -248,7 +248,7 @@ def export_materials_pdf(request):
     if with_prices and pricing is None:
         pricing = {'complete': False, 'subtotal_with_prices': None}
     output = materials_pdf(title, pricing.get('rows', rows) if pricing else rows,
-                           pricing=pricing, warnings=result.get('warnings', []))
+                           pricing=pricing, calculation=result)
     suffix = '-materiales-con-precios' if with_prices else '-materiales-sin-precios'
     response = FileResponse(output, content_type='application/pdf', as_attachment=True,
                             filename=(slugify(title)[:65] or 'croquis3r') + suffix + '.pdf')

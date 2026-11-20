@@ -13,43 +13,75 @@ MAX_PNG_BYTES = 8 * 1024 * 1024
 MAX_SIDE = 2400
 
 
-def materials_pdf(title, rows, pricing=None, warnings=()):
-    """Render trusted, recalculated quantities; prices never come from the browser."""
+def panel_calculation_rows(calculation):
+    """Group the server's recipes into a compact, auditable explanation."""
+    return [{'label': f"{row['kind']} - {str(row['length']).replace('.', ',')} m",
+             'panels': row['quantity'], 'long_each': row['tp50_each'], 'short_each': row['tp37_each'],
+             'long_total': row['tp50'], 'short_total': row['tp37']}
+            for row in calculation.get('details', [])]
+
+
+def materials_pdf(title, rows, pricing=None, warnings=(), calculation=None):
+    """Render recalculated quantities and recipe counts; never trust browser totals."""
     from xml.sax.saxutils import escape
+    from django.utils import timezone
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     styles = getSampleStyleSheet()
+    body = ParagraphStyle('Compact', parent=styles['Normal'], fontSize=9, leading=12)
+    small = ParagraphStyle('Small', parent=body, fontSize=8, leading=10, textColor=colors.HexColor('#555555'))
     output = BytesIO()
     doc = SimpleDocTemplate(output, pagesize=A4, rightMargin=32, leftMargin=32,
-                            topMargin=32, bottomMargin=32, title=title, author='Croquis3R')
-    para = lambda text: Paragraph(escape(str(text)), styles['Normal'])
-    story = [Paragraph('Croquis3R · Lista de materiales', styles['Title']), para(title), Spacer(1, 12)]
+                            topMargin=28, bottomMargin=28, title=title, author='Croquis3R')
+    para = lambda text: Paragraph(escape(str(text)), body)
+    number = lambda value: f'{float(value):g}'.replace('.', ',')
+    calculation = calculation or {}
+    story = [Paragraph('Croquis3R - Lista de materiales', styles['Title']), para(title),
+             para(f"Fecha: {timezone.localtime():%d/%m/%Y %H:%M}"), Spacer(1, 6)]
+    if calculation:
+        story += [para(f"Altura del cálculo: {calculation.get('height_label', 'Pendiente')} | "
+                       f"Espesor: {calculation.get('block_family', '12')} cm"),
+                  para(f"Largo total: {number(calculation.get('meters', 0))} m | "
+                       f"Paños: {calculation.get('panels', 0)}"), Spacer(1, 10)]
     priced = pricing is not None
     money = lambda value: 'Pendiente' if value is None else f'{value:,.2f}'
     headers = ['Material', 'Unidad', 'Cantidad'] + (['Precio CRC', 'Importe CRC'] if priced else [])
     data = [[para(value) for value in headers]]
     for row in rows:
-        description = row['name']
-        if priced and row.get('reason'):
-            description += ' · ' + row['reason']
-        values = [description, row['unit'], 'Pendiente' if row['quantity'] is None else row['quantity']]
+        values = [row['name'], row['unit'], 'Pendiente' if row['quantity'] is None else row['quantity']]
         if priced:
             values += [money(row.get('unit_price')), money(row.get('amount'))]
         data.append([para(value) for value in values])
-    table = Table(data, colWidths=[190, 83, 70, 88, 100] if priced else [365, 85, 81], repeatRows=1)
-    table.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8efdf')),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'), ('BOTTOMPADDING', (0,0), (-1,-1), 9),
-        ('TOPPADDING', (0,0), (-1,-1), 9), ('LINEBELOW', (0,0), (-1,-1), .3, colors.lightgrey)]))
-    story += [table, Spacer(1, 14)]
+    table_style = TableStyle([('BACKGROUND', (0,0), (-1,0), colors.HexColor('#fff2a8')),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'), ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 6), ('LINEBELOW', (0,0), (-1,-1), .3, colors.lightgrey)])
+    table = Table(data, colWidths=[190, 83, 60, 94, 104] if priced else [365, 85, 81], repeatRows=1)
+    table.setStyle(table_style)
+    story += [table, Spacer(1, 10)]
     if priced:
         label = 'Total de artículos listados' if pricing.get('complete') else 'Subtotal parcial con precio'
         story += [para(f"{label}: CRC {money(pricing.get('subtotal_with_prices'))}"),
-                  para('Importes finales con IVA. Los pendientes no se incluyen en el subtotal.'),
-                  para(f"Consulta de precios: {pricing.get('fetched_display') or 'no disponible'}"),
-                  para(pricing.get('notice', ''))]
-    story += [Spacer(1, 12), para('Estimación de materiales TicoBlock para revisión; no incluye todos los materiales de la casa.')]
-    story += [para(warning) for warning in warnings]
+                  para('IVA incluido.' if pricing.get('complete') else 'IVA incluido. Artículos pendientes excluidos del subtotal.'),
+                  para(f"Consulta de precios: {pricing.get('fetched_display') or 'no disponible'}")]
+    details = panel_calculation_rows(calculation)
+    if details:
+        long_name, short_name = calculation['block_long_name'], calculation['block_short_name']
+        story += [Spacer(1, 10), Paragraph('Cómo se calcularon los bloques', styles['Heading2'])]
+        detail_data = [[para(value) for value in ['Tipo de paño', 'Paños', 'Bloques por paño y aporte total']]]
+        for row in details:
+            explanation = (f"{row['panels']} x ({row['long_each']} {long_name} + {row['short_each']} {short_name}) "
+                           f"= {row['long_total']} {long_name} + {row['short_total']} {short_name}")
+            detail_data.append([para(row['label']), para(row['panels']), para(explanation)])
+        detail_table = Table(detail_data, colWidths=[125, 45, 361], repeatRows=1)
+        detail_table.setStyle(table_style)
+        story.append(detail_table)
+    if calculation.get('columns_pending'):
+        story += [Spacer(1, 6), para('Columnas pendientes de completar o confirmar.')]
+    if calculation.get('block_family') == '10':
+        story += [Spacer(1, 6), para('10 cm: mortero y acero pendientes de confirmar; sin vigabloques.')]
+    story += [Spacer(1, 10), Paragraph(escape('Estimación de cerramientos. No incluye cimentación, techo ni rellenos. '
+               'Varillas: equivalentes del Excel; cortes y traslapes por confirmar.'), small)]
     doc.build(story)
     output.seek(0)
     return output
