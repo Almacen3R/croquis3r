@@ -21,6 +21,39 @@ def panel_calculation_rows(calculation):
             for row in calculation.get('details', [])]
 
 
+def other_calculation_rows(calculation):
+    """Explain the existing server totals without introducing new rounding rules."""
+    from collections import Counter
+    from decimal import Decimal
+    if calculation.get('block_family') != '12' or 'wall_factor' not in calculation:
+        return []
+    number = lambda value: format(Decimal(str(value)).quantize(Decimal('.001')).normalize(), 'f').replace('.', ',')
+    layers = calculation['beam_layers']
+    beam_groups = Counter((Decimal(str(row['length'])), row['pieces']) for row in calculation['beam_details'])
+    beam_parts = []
+    pieces = 0
+    for (length, count), repeats in beam_groups.items():
+        text = f"{number(length)} m / 0,40 m = {number(length / Decimal('.40'))} -> {count} piezas"
+        if repeats > 1:
+            text = f"{repeats} paredes de {number(length)} m: ({text}) x {repeats}"
+        beam_parts.append(text)
+        pieces += count * repeats
+    beam_text = '; '.join(beam_parts) + f". {pieces} x {layers} hilada(s) = {pieces * layers} unidades. Redondeo hacia arriba por pared continua."
+    factors = Counter()
+    for row in calculation.get('details', []):
+        if row['quantity'] and row['steel']:
+            factors[Decimal(str(row['steel'])) / row['quantity']] += row['quantity']
+    wall_terms = ' + '.join(f'{quantity} x {number(factor)}' for factor, quantity in factors.items()) or '0'
+    wall_text = f"{wall_terms} = {number(calculation['wall_factor'])} -> {calculation['wall_steel']} equivalentes. Redondeo del Excel."
+    meters = Decimal(str(calculation['meters']))
+    beam_steel_text = (f"{number(meters)} m / 6 = {number(meters / 6)} -> {calculation['steel_one']} por hilada; "
+                       f"{calculation['steel_one']} x {layers} = {calculation['beam_steel']} equivalentes. Redondeo del Excel.")
+    blocks = sum(row['tp50'] + row['tp37'] for row in calculation.get('details', []))
+    mortar_text = f"{blocks} bloques / 20 = {number(Decimal(blocks) / 20)} -> {calculation['mortar']} sacos de 40 kg. Redondeo hacia arriba."
+    return [('Vigabloques', beam_text), ('Varilla 3/8 - pared', wall_text),
+            ('Varilla 3/8 - viga', beam_steel_text), ('Mortero', mortar_text)]
+
+
 def materials_pdf(title, rows, pricing=None, warnings=(), calculation=None):
     """Render recalculated quantities and recipe counts; never trust browser totals."""
     from xml.sax.saxutils import escape
@@ -76,6 +109,14 @@ def materials_pdf(title, rows, pricing=None, warnings=(), calculation=None):
         detail_table = Table(detail_data, colWidths=[125, 45, 361], repeatRows=1)
         detail_table.setStyle(table_style)
         story.append(detail_table)
+    other_rows = other_calculation_rows(calculation)
+    if other_rows:
+        story += [Spacer(1, 10), Paragraph('Cómo se calcularon los otros materiales', styles['Heading2'])]
+        other_data = [[para('Material'), para('Cálculo')]]
+        other_data += [[para(label), para(explanation)] for label, explanation in other_rows]
+        other_table = Table(other_data, colWidths=[125, 406], repeatRows=1, splitInRow=1)
+        other_table.setStyle(table_style)
+        story.append(other_table)
     if calculation.get('columns_pending'):
         story += [Spacer(1, 6), para('Columnas pendientes de completar o confirmar.')]
     if calculation.get('block_family') == '10':

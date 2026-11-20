@@ -71,6 +71,31 @@ class PdfExportTests(TestCase):
                 self.assertEqual((one['long_each'], one['short_each']), (12, 12))
                 self.assertNotIn('warnings', render.call_args.kwargs)
 
+    def test_pdf_explains_beams_and_excel_steel_rounding_at_both_heights(self):
+        from .test_modulation import doc, wall
+        from .modulation import calculate_modulation
+        from .pdf_export import other_calculation_rows
+        for height, beam, steel in ((2.7, 33, 2), (2.9, 66, 4)):
+            calculation = calculate_modulation(doc(wall(x2=13, height=height), linear_columns=8, t_columns=0), {})
+            explanations = dict(other_calculation_rows(calculation))
+            self.assertIn('13 m / 0,40 m = 32,5 -> 33 piezas', explanations['Vigabloques'])
+            self.assertIn(f'= {beam} unidades', explanations['Vigabloques'])
+            self.assertIn('6 x 1,5 + 1 x 0,5 = 9,5 -> 10', explanations['Varilla 3/8 - pared'])
+            self.assertIn(f'= {steel} equivalentes', explanations['Varilla 3/8 - viga'])
+            self.assertIn('312 bloques / 20 = 15,6 -> 16', explanations['Mortero'])
+        narrow = calculate_modulation(doc(wall(x2=13, thickness=.1)), {})
+        self.assertEqual(other_calculation_rows(narrow), [])
+
+    def test_long_beam_explanation_can_paginate_without_losing_the_pdf(self):
+        from .test_modulation import doc, wall
+        from .modulation import calculate_modulation
+        from .pdf_export import materials_pdf
+        drawing = doc(*(wall(str(i), x2=(i + 1) / 2, y1=i, y2=i) for i in range(100)))
+        calculation = calculate_modulation(drawing, {})
+        self.assertEqual(calculation['status'], 'ready')
+        output = materials_pdf('Proyecto con muchos tramos', calculation['items'], calculation=calculation)
+        self.assertTrue(output.getvalue().startswith(b'%PDF-'))
+
     def test_materials_rejects_invalid_document_and_requires_authentication(self):
         data={'name':'Casa','document':{'version':1,'objects':[]},'with_prices':'yes'}
         self.assertEqual(self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json').status_code,400)

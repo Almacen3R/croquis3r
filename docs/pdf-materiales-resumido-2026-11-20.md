@@ -11,3 +11,12 @@ No cambia las cantidades ni consulta precios para la copia sin precios. Sin migr
 Se generaron y revisaron visualmente dos muestras A4 de una página: con precios ficticios rotulados expresamente como ejemplo y sin precios. Sin desbordes ni cortes. Prueba adicional verifica altura 2,70 m, agrupación 6+1, cantidades 216/72 y 12/12 y que se recalcula desde el documento, ignorando valores inventados por el navegador.
 
 Estado: implementado, pendiente de desplegar. Las muestras están en output/pdf, excluido de Git. La entrega incluye las mejoras anteriores de recálculo, saltos de línea y giro.
+
+
+## Ampliación: otros materiales
+
+El PDF también muestra el cálculo de vigabloques por pared continua y número de hiladas; varilla de pared por factor de cada grupo de paños; varilla de viga según metros / 6 y número de hiladas; y mortero según bloques / 20. Cada resultado explica si se redondea hacia arriba o con el redondeo del Excel. Se usan los mismos totales del motor, sin convertir los equivalentes de varilla en un despiece comercial confirmado.
+
+Se mantienen pendientes de 10 cm: no se imprimen fórmulas heredadas de 12 cm para mortero o acero. Las tablas admiten división interna en varias páginas para proyectos con muchos tramos. Probados el ejemplo de 13 m a 2,70/2,90 m y un proyecto de 100 tramos distintos; muestras visuales sin cortes.
+
+Verificación final de esta ampliación: 159 pruebas Django aprobadas.
