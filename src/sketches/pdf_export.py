@@ -98,25 +98,21 @@ def materials_pdf(title, rows, pricing=None, warnings=(), calculation=None):
                   para('IVA incluido.' if pricing.get('complete') else 'IVA incluido. Artículos pendientes excluidos del subtotal.'),
                   para(f"Consulta de precios: {pricing.get('fetched_display') or 'no disponible'}")]
     details = panel_calculation_rows(calculation)
+    calculation_rows = []
     if details:
         long_name, short_name = calculation['block_long_name'], calculation['block_short_name']
-        story += [Spacer(1, 10), Paragraph('Cómo se calcularon los bloques', styles['Heading2'])]
-        detail_data = [[para(value) for value in ['Tipo de paño', 'Paños', 'Bloques por paño y aporte total']]]
         for row in details:
-            explanation = (f"{row['panels']} x ({row['long_each']} {long_name} + {row['short_each']} {short_name}) "
+            explanation = (f"{row['panels']} {'paño' if row['panels'] == 1 else 'paños'} x ({row['long_each']} {long_name} + {row['short_each']} {short_name}) "
                            f"= {row['long_total']} {long_name} + {row['short_total']} {short_name}")
-            detail_data.append([para(row['label']), para(row['panels']), para(explanation)])
-        detail_table = Table(detail_data, colWidths=[125, 45, 361], repeatRows=1)
-        detail_table.setStyle(table_style)
-        story.append(detail_table)
-    other_rows = other_calculation_rows(calculation)
-    if other_rows:
-        story += [Spacer(1, 10), Paragraph('Cómo se calcularon los otros materiales', styles['Heading2'])]
-        other_data = [[para('Material'), para('Cálculo')]]
-        other_data += [[para(label), para(explanation)] for label, explanation in other_rows]
-        other_table = Table(other_data, colWidths=[125, 406], repeatRows=1, splitInRow=1)
-        other_table.setStyle(table_style)
-        story.append(other_table)
+            calculation_rows.append((row['label'], explanation))
+    calculation_rows += other_calculation_rows(calculation)
+    if calculation_rows:
+        story += [Spacer(1, 10), Paragraph('Cálculo de materiales', styles['Heading2'])]
+        calculation_data = [[para('Material / paño'), para('Cálculo')]]
+        calculation_data += [[para(label), para(explanation)] for label, explanation in calculation_rows]
+        calculation_table = Table(calculation_data, colWidths=[125, 406], repeatRows=1, splitInRow=1)
+        calculation_table.setStyle(table_style)
+        story.append(calculation_table)
     if calculation.get('columns_pending'):
         story += [Spacer(1, 6), para('Columnas pendientes de completar o confirmar.')]
     if calculation.get('block_family') == '10':

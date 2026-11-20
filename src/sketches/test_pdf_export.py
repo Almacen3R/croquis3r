@@ -96,6 +96,25 @@ class PdfExportTests(TestCase):
         output = materials_pdf('Proyecto con muchos tramos', calculation['items'], calculation=calculation)
         self.assertTrue(output.getvalue().startswith(b'%PDF-'))
 
+    def test_material_calculations_share_one_table_and_heading(self):
+        from reportlab.platypus import Table, Paragraph
+        from .test_modulation import doc, wall
+        from .modulation import calculate_modulation
+        from .pdf_export import materials_pdf
+        calculation = calculate_modulation(doc(wall(x2=13, height=2.7), linear_columns=8), {})
+        with patch('reportlab.platypus.Table', wraps=Table) as tables, patch('reportlab.platypus.Paragraph', wraps=Paragraph) as paragraphs:
+            materials_pdf('Tapia', calculation['items'], calculation=calculation)
+        headings = [call.args[0] for call in paragraphs.call_args_list if call.args[1].name == 'Heading2']
+        self.assertEqual(headings, ['Cálculo de materiales'])
+        self.assertEqual(tables.call_count, 2)  # quantity list and a single calculation table
+        data = tables.call_args_list[-1].args[0]
+        labels = [row[0].text for row in data]
+        self.assertIn('Completo - 2 m', labels)
+        self.assertIn('Vigabloques', labels)
+        self.assertIn('Varilla 3/8 - pared', labels)
+        self.assertIn('Varilla 3/8 - viga', labels)
+        self.assertIn('Mortero', labels)
+
     def test_materials_rejects_invalid_document_and_requires_authentication(self):
         data={'name':'Casa','document':{'version':1,'objects':[]},'with_prices':'yes'}
         self.assertEqual(self.client.post('/api/export-materials-pdf/',json.dumps(data),content_type='application/json').status_code,400)

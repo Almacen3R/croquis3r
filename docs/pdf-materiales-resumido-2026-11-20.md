@@ -20,3 +20,7 @@ El PDF también muestra el cálculo de vigabloques por pared continua y número 
 Se mantienen pendientes de 10 cm: no se imprimen fórmulas heredadas de 12 cm para mortero o acero. Las tablas admiten división interna en varias páginas para proyectos con muchos tramos. Probados el ejemplo de 13 m a 2,70/2,90 m y un proyecto de 100 tramos distintos; muestras visuales sin cortes.
 
 Verificación final de esta ampliación: 159 pruebas Django aprobadas.
+
+## Tabla única de cálculo
+
+Por aclaración del responsable, se unifican bloques, vigabloques, varillas y mortero bajo un solo título Cálculo de materiales y una sola tabla Material / paño | Cálculo. Se elimina el subtítulo de otros materiales. La cantidad de paños queda explícita dentro de la operación de cada grupo de bloques. Se conserva paginación y repetición de cabecera.
