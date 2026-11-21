@@ -8,6 +8,8 @@ Cuando llegan las cotas completas de la estimación, se refina el centrado una v
 
 El giro no modifica su transformación geométrica, materiales, datos guardados ni exportaciones. El botón Centrar sigue siendo un encuadre completo: puede ajustar escala para mostrar todo. Girar conserva la escala elegida; si el contenido ya no cabe en la altura del lienzo, Centrar permite encuadrarlo completo.
 
-Pruebas: centrado exacto de paredes de 13 m en ambas orientaciones, tramos pequeños, coordenadas negativas, monitores anchos/verticales, cotas y anotaciones separadas, cuatro giros consecutivos sin acumular zoom y conservación del factor real de escala SVG. Pendiente de desplegar y comprobar en producción.
+Pruebas: centrado exacto de paredes de 13 m en ambas orientaciones, tramos pequeños, coordenadas negativas, monitores anchos/verticales, cotas y anotaciones separadas, cuatro giros consecutivos sin acumular zoom y conservación del factor real de escala SVG. Aplicado y comprobado en producción con el commit e8ce8ae91b16.
 
 Verificación previa: 165 pruebas Django y 86 JavaScript aprobadas (251), sintaxis del editor correcta. Sin migraciones.
+
+Despliegue confirmado: Result=success y ExecMainStatus=0. Se verificó por HTTP la interfaz nueva y que viewport.mjs coincide por SHA-256 con el módulo probado. El código servido del giro ya no llama al encuadre automático. La prueba Linux de Blender y las 165 pruebas PostgreSQL pasaron; sin migraciones. Se conservaron 4 artículos, 5 atenciones, 1 plantilla y 21 croquis. Respaldo previo: /data/projects/croquis3r/backup-staging/update-20261121T221732Z.
