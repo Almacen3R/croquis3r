@@ -1,6 +1,6 @@
 // Visual settings only: never used to calculate quantities or prices.
 import {ShapeUtils,Vector2} from './vendor/three/three.core.js';
-export const DEFAULT_PRESENTATION={wall_color:'ivory',floor_finish:'tile',roof_type:'none',roof_color:'charcoal',roof_rise:.8,ridge_axis:'x'};
+export const DEFAULT_PRESENTATION={wall_color:'ivory',floor_finish:'tile',roof_type:'none',roof_color:'charcoal',roof_rise:.8,ridge_axis:'x',roof_overhang:.25};
 export function presentationSettings(document) {
   return {...DEFAULT_PRESENTATION,...document.presentation3d};
 }
@@ -30,6 +30,19 @@ function clip(ring,axis,value,sign) {
   return result;
 }
 
+// Split shared room boundaries before cancelling them, including T junctions.
+export function roofBoundaryEdges(rings) {
+  const points=rings.flat(),edges=new Map(),key=p=>`${p.x.toFixed(6)},${p.y.toFixed(6)}`;
+  for(const ring of rings)for(let i=0;i<ring.length;i++) {
+    const a=ring[i],b=ring[(i+1)%ring.length],dx=b.x-a.x,dy=b.y-a.y,l2=dx*dx+dy*dy;
+    if(l2<EPS)continue;
+    const cuts=[a,b,...points.filter(p=>{const t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l2;return t>EPS&&t<1-EPS&&Math.abs((p.x-a.x)*dy-(p.y-a.y)*dx)<EPS;})];
+    const unique=[...new Map(cuts.map(p=>[key(p),p])).values()].sort((p,q)=>(p.x-q.x)*dx+(p.y-q.y)*dy);
+    for(let j=1;j<unique.length;j++){const p=unique[j-1],q=unique[j],id=[key(p),key(q)].sort().join('|');if(edges.has(id))edges.delete(id);else edges.set(id,[p,q]);}
+  }
+  return [...edges.values()];
+}
+
 export function buildRoof(scene,settings) {
   const surfaces=[],closures=[];
   if(settings.roof_type==='none'||!scene.floors.length)return {surfaces,closures};
@@ -41,19 +54,16 @@ export function buildRoof(scene,settings) {
   const base=(heights.length?Math.max(...heights):2.5)+.04;
   const elevation=p=>base+(settings.roof_type==='gable'&&half>EPS?settings.roof_rise*Math.max(0,1-Math.abs(p[crossAxis]-middle)/half):0);
   const vertex=p=>[p.x,elevation(p),p.y];
-  const perimeter=new Map(),key=p=>`${p.x.toFixed(6)},${p.y.toFixed(6)}`;
+  const perimeter=roofBoundaryEdges(scene.floors);
   for(const ring of scene.floors) {
     // Triangulate before clipping: a U-shaped ring can split into disconnected pieces.
     const triangles=ShapeUtils.triangulateShape(ring.map(p=>new Vector2(p.x,p.y)),[]).map(ids=>ids.map(i=>ring[i]));
     const parts=settings.roof_type==='gable'?triangles.flatMap(triangle=>[clip(triangle,crossAxis,middle,1),clip(triangle,crossAxis,middle,-1)]):[ring];
     for(const part of parts)if(part.length>=3)surfaces.push(part.map(vertex));
-    for(let i=0;i<ring.length;i++) {
-      const a=ring[i],b=ring[(i+1)%ring.length],id=[key(a),key(b)].sort().join('|');
-      if(perimeter.has(id))perimeter.delete(id);else perimeter.set(id,[a,b]);
-    }
+
   }
   // Fill gable ends on the external perimeter, never across internal room divisions.
-  for(const [a,b] of perimeter.values()) {
+  for(const [a,b] of perimeter) {
     const cuts=[a];
     if((a[crossAxis]-middle)*(b[crossAxis]-middle)<-EPS) {
       const t=(middle-a[crossAxis])/(b[crossAxis]-a[crossAxis]);
@@ -67,6 +77,25 @@ export function buildRoof(scene,settings) {
         closures.push([[p.x,base-.04,p.y],[q.x,base-.04,q.y],
           [q.x,elevation(q)-.08,q.y],[p.x,elevation(p)-.08,p.y]]);
     }
+  }
+  const overhang=settings.roof_overhang??0;
+  if(overhang>0) {
+    const key=p=>`${p.x.toFixed(6)},${p.y.toFixed(6)}`,normals=new Map();
+    const edges=perimeter.map(([a,b])=>{
+      const length=Math.hypot(b.x-a.x,b.y-a.y),n={x:-(b.y-a.y)/length,y:(b.x-a.x)/length};
+      const mid={x:(a.x+b.x)/2+n.x*.001,z:(a.y+b.y)/2+n.y*.001};
+      if(scene.floors.some(r=>insideRing(mid,r))){n.x=-n.x;n.y=-n.y;}
+      for(const p of [a,b]){const id=key(p);if(!normals.has(id))normals.set(id,[]);normals.get(id).push(n);}
+      return {a,b,n};
+    });
+    const offset=(p,n)=>{
+      const ns=normals.get(key(p)),sum=ns.reduce((v,m)=>({x:v.x+m.x,y:v.y+m.y}),{x:0,y:0}),den=sum.x*n.x+sum.y*n.y;
+      let dx=den>EPS?sum.x*overhang/den:n.x*overhang,dy=den>EPS?sum.y*overhang/den:n.y*overhang;
+      const length=Math.hypot(dx,dy);if(length>overhang*3){dx*=overhang*3/length;dy*=overhang*3/length;}
+      return {x:p.x+dx,y:p.y+dy};
+    };
+    const extended=p=>[p.x,base+(settings.roof_type==='gable'&&half>EPS?settings.roof_rise*(1-Math.abs(p[crossAxis]-middle)/half):0),p.y];
+    for(const {a,b,n} of edges){const strip=[a,b,offset(b,n),offset(a,n)];const parts=settings.roof_type==='gable'?[clip(strip,crossAxis,middle,1),clip(strip,crossAxis,middle,-1)]:[strip];for(const part of parts)if(part.length>=3)surfaces.push(part.map(extended));}
   }
   return {surfaces,closures};
 }

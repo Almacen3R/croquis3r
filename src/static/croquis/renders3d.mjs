@@ -1,29 +1,33 @@
-const {requestJson,cookieValue}=await import(`./http.mjs${new URL(import.meta.url).search}`);
-const {buildRoof}=await import(`./presentation3d.mjs${new URL(import.meta.url).search}`);
+const {cookieValue}=await import(`./http.mjs${new URL(import.meta.url).search}`);
+const {buildRenderPresentation}=await import(`./visual-details3d.mjs${new URL(import.meta.url).search}`);
 
-export function setupRenders({source,name,sceneData,getSettings,sketchId}) {
+const {requestRenderJson,renderJobStatus}=await import(`./render-status.mjs${new URL(import.meta.url).search}`);
+
+export function setupRenders({source,name,sceneData,getSettings,getView,sketchId}) {
   const button=document.getElementById('viewer3d-render');
   const status=document.getElementById('viewer3d-render-status');
   const list=document.getElementById('viewer3d-render-list');
   const feedback=document.getElementById('viewer3d-render-feedback');feedback.hidden=true;
   const inform=text=>{feedback.textContent=text;feedback.hidden=!text;};
-  let closed=false,busy=false,timer=null,controller=null,lastJobs='';
+  let closed=false,busy=false,available=false,timer=null,controller=null,lastJobs='';
   const node=(tag,text)=>{const el=document.createElement(tag);el.textContent=text;return el;};
-  const labels={queued:'En cola',running:'Generando imagen…',ready:'Lista para descargar',failed:'No completada'};
+  const updateStates=(jobs,health)=>{for(const job of jobs){const element=list.querySelector(`[data-job-id="${job.id}"] [data-render-state]`);if(element)element.textContent=renderJobStatus(job,health);}};
   const refresh=async()=>{
     if(closed)return;
     controller=new AbortController();
     try {
-      const result=await requestJson(`/api/renders/${sketchId?`?sketch_id=${encodeURIComponent(sketchId)}`:''}`,{signal:controller.signal});
+      const result=await requestRenderJson(`/api/renders/${sketchId?`?sketch_id=${encodeURIComponent(sketchId)}`:''}`,{signal:controller.signal});
       if(closed)return;
-      button.disabled=busy||!result.available;
-      status.textContent=result.available?'Imágenes de presentación · el proceso continúa si cierras la vista.':'El servicio de imágenes no está disponible por ahora. Puedes seguir usando la vista 3D.';
-      const signature=JSON.stringify(result.jobs);
+      available=result.available;button.disabled=busy||!available;
+      status.textContent=available?`El render puede tardar varios minutos (límite ${Math.round((result.timeout_seconds||600)/60)} min). Continúa si cierras la vista.`:'El servicio de imágenes no responde. Las imágenes listas siguen disponibles; las que están en cola esperan al servicio.';
+      updateStates(result.jobs,available);
+      const signature=JSON.stringify({available,jobs:result.jobs.map(({elapsed_seconds,...job})=>job)});
       if(signature===lastJobs)return;
       lastJobs=signature;
       const cards=result.jobs.map(job=>{
-        const card=node('article','');card.className='render3d-card';
-        card.append(node('strong',job.title),node('span',labels[job.status]||job.status),
+        const card=node('article','');card.className='render3d-card';card.dataset.jobId=job.id;
+        const state=node('span',renderJobStatus(job,available));state.dataset.renderState='';
+        card.append(node('strong',job.title),state,
           node('small',`${new Date(job.created_at).toLocaleString('es-CR')} · ${job.sketch_revision?`revisión ${job.sketch_revision}`:'vista capturada'} · ${job.fingerprint}`));
         if(job.error)card.append(node('p',job.error));
         if(job.image_url) {
@@ -34,22 +38,23 @@ export function setupRenders({source,name,sceneData,getSettings,sketchId}) {
       });
       list.replaceChildren(...cards);
       if(!cards.length)list.append(node('p','Las imágenes que generes aparecerán aquí.'));
-    } catch(error) {if(!closed){status.textContent=error.message;button.disabled=true;}}
+    } catch(error) {if(!closed){available=false;status.textContent=error.message;button.disabled=true;for(const state of list.querySelectorAll('[data-render-state]'))if(!state.textContent.includes('descargar')&&!state.textContent.includes('completada'))state.textContent='Estado sin confirmar. No necesitas volver a generar la imagen; se volverá a consultar.';}}
     finally {if(!closed)timer=setTimeout(refresh,4000);}
   };
   button.onclick=async()=>{
-    if(busy)return;busy=true;button.disabled=true;
+    if(busy||!available)return;busy=true;button.disabled=true;
     inform('Enviando solicitud…');
-    const settings={...getSettings()};
-    const documentSnapshot={...source,presentation3d:settings};
-    const scene={...sceneData,settings,roof:buildRoof(sceneData,settings)};
     try {
+      const settings={...getSettings()};
+      const documentSnapshot={...source,presentation3d:settings};
+      const useCurrent=document.getElementById('viewer3d-render-view').value==='current';
+      const scene=buildRenderPresentation(sceneData,settings,useCurrent?getView():null);
       const csrfName=document.querySelector('meta[name="csrf-cookie-name"]').content;
-      await requestJson('/api/renders/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':cookieValue(document.cookie,csrfName)},
+      await requestRenderJson('/api/renders/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':cookieValue(document.cookie,csrfName)},
         body:JSON.stringify({name,document:documentSnapshot,scene,sketch_id:sketchId||null})});
-      if(!closed){document.getElementById('viewer3d-renders').open=true;inform('Solicitud recibida. La imagen aparecerá aquí cuando termine.');}
-    } catch(error){if(!closed)inform(error.message);}
-    finally {busy=false;if(!closed){button.disabled=false;}}
+      if(!closed){document.getElementById('viewer3d-renders').open=true;inform('Solicitud recibida. Revisa aquí el tiempo y el estado; el proceso continúa si cierras la vista.');}
+    } catch(error){if(!closed){available=false;inform(error.message);}}
+    finally {busy=false;if(!closed){button.disabled=!available;}}
   };
   refresh();
   return ()=>{closed=true;clearTimeout(timer);controller?.abort();button.onclick=null;};

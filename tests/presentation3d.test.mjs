@@ -6,7 +6,7 @@ const wall={id:'w',kind:'wall',x1:0,y1:0,x2:4,y2:0,height:2.5,thickness:.12};
 const wallsFrom=points=>points.map(([x1,y1],i)=>({...wall,id:String(i),x1,y1,x2:points[(i+1)%points.length][0],y2:points[(i+1)%points.length][1]}));
 const rectangle=wallsFrom([[0,0],[4,0],[4,4],[0,4]]);
 const house=objects=>buildHouseScene({objects});
-const settings=presentationSettings({});
+const settings={...presentationSettings({}),roof_overhang:0};
 const projectedArea=faces=>faces.reduce((sum,ring)=>sum+Math.abs(ring.reduce((a,p,i)=>{const q=ring[(i+1)%ring.length];return a+p[0]*q[2]-q[0]*p[2];},0))/2,0);
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
 

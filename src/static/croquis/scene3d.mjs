@@ -53,7 +53,7 @@ export function buildHouseScene(document) {
       openings.push({source:o.id,kind:o.kind,size:[width-2*frame,height-frame*(o.kind==='window'?2:1),o.kind==='window'?.025:.04],
         position:[center[0],center[1]-(o.kind==='door'?frame/2:0),center[2]],
         rotation:-Math.atan2(wall.y2-wall.y1,wall.x2-wall.x1),
-        ...(swing?{openPosition:[(swing.hinge.x+swing.open.x)/2,center[1]-frame/2,(swing.hinge.y+swing.open.y)/2],
+        ...(swing?{handleSide:(o.door_rotation||0)%2?-1:1,openPosition:[(swing.hinge.x+swing.open.x)/2,center[1]-frame/2,(swing.hinge.y+swing.open.y)/2],
           openRotation:-Math.atan2(swing.open.y-swing.hinge.y,swing.open.x-swing.hinge.x)}:{})});
     }
   }

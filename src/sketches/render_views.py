@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods, require_GET
 from .access import visible_to
 from .domain import InvalidDocument, validate_document
 from .models import RenderJob, Sketch
-from .rendering import fingerprint, render_path, serialize_job, validate_scene, worker_available
+from .rendering import fingerprint, render_path, serialize_job, validate_scene, worker_available, expire_overdue_jobs
 from .views import api, payload, name, articles_by_id
 
 
@@ -24,7 +24,8 @@ def jobs(request):
                 raise InvalidDocument('Referencia de proyecto inválida.')
             sketch = get_object_or_404(visible_to(Sketch, request.user), pk=int(value))
             records = records.filter(sketch=sketch)
-        return JsonResponse({'enabled': settings.RENDER_ENABLED, 'available': worker_available(),
+        expire_overdue_jobs(records)
+        return JsonResponse({'timeout_seconds': settings.RENDER_TIMEOUT, 'enabled': settings.RENDER_ENABLED, 'available': worker_available(),
             'jobs': [serialize_job(job) for job in records[:10]]})
     if not worker_available():
         return JsonResponse({'error': 'El servicio de imágenes no está disponible en este momento. Puedes seguir usando la vista 3D.'}, status=503)
@@ -41,6 +42,7 @@ def jobs(request):
         sketch = get_object_or_404(visible_to(Sketch, request.user), pk=data['sketch_id'])
         if fingerprint(validate_document(sketch.document, articles_by_id())) == fingerprint(document):
             revision = sketch.revision
+    expire_overdue_jobs(RenderJob.objects.filter(owner=request.user))
     with transaction.atomic():
         # Serialize submissions by the same user; two active jobs per account.
         get_user_model().objects.select_for_update().get(pk=request.user.pk)

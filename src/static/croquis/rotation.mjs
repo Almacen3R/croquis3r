@@ -16,7 +16,7 @@ export function rotateDrawingLeft(document) {
     }
   }
   if(result.presentation3d && (result.presentation3d.ridge_axis || result.presentation3d.roof_type==='gable')) {
-    result.presentation3d.ridge_axis=result.presentation3d.ridge_axis==='y'?'x':'y';
+    result.presentation3d.ridge_axis=result.presentation3d.ridge_axis==='z'?'x':'z';
   }
   return result;
 }

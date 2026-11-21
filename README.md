@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: 4 de noviembre de 2026.** Las [observaciones del vendedor en el croquis y las descargas PNG/PDF](docs/observaciones-croquis-2026-11-04.md) están comprobadas en local, pendientes de despliegue. La [identidad empresarial 3R y el logo](docs/identidad-3r-2026-11-02.md) están implementados y comprobados en local, pendientes de aplicar al servidor. Prototipo con recetas TicoBlock documentadas, servidor LAN con PostgreSQL y consulta de precios comerciales homologados. La versión `9a9e259fb0a1` está desplegada y verificada: preferencia de paños visible, puertas ajustables, descargas e importación de proyectos, lista unificada de Proyectos, zoom con rueda y desplazamiento, cuadrícula de mayor contraste y columnas independientes contabilizadas. Ver las [comprobaciones y el resultado del despliegue](docs/exportar-importar-proyectos-2026-10-26.md). No sustituye la revisión profesional de la construcción. El selector PDF/PNG, los paneles laterales ajustables y las listas PDF con/sin precios ya están en producción. Las [cotas reforzadas y la altura ajustable del lienzo](docs/cotas-altura-2026-10-27.md) ya están aplicadas. La [cuadrícula opcional y las descargas sin fondo ni pie inferior](docs/cuadricula-impresion-2026-11-02.md) están comprobadas en local y pendientes de despliegue.
+**Estado: 21 de noviembre de 2026.** Croquis3R funciona en producción LAN con PostgreSQL y consulta de precios homologados de 3R. La versión `dd41b149a6a2` está desplegada y verificada: editor, cálculo por paños, proyectos privados, anotaciones, descargas, PDF con cálculo unificado de materiales y visor/recorrido/render 3D. La nueva [mejora visual 3D](docs/calidad-visual-3d-2026-11-21.md) se prueba únicamente en local. El cálculo no sustituye la revisión profesional de la construcción.
 
 ## Qué se puede probar
 
@@ -140,10 +140,14 @@ Repositorio oficial: https://github.com/Almacen3R/croquis3r · rama `main`. La i
 
 El editor incluye **Vista 3D** para revisar paredes, aberturas, columnas dibujadas y pisos de recintos cerrados. Permite girar, acercar, ver desde arriba, transparentar paredes y abrir puertas. Funciona con cambios sin guardar y representa una planta. Ver [arquitectura y límites de la primera etapa](docs/visor-3d-2026-11-07.md).
 
-Segunda etapa local: **Acabados y techo** permite elegir pintura, piso y cubierta plana o a dos aguas, y **Entrar a la casa** habilita el recorrido a altura de persona con colisiones. Las preferencias se guardan con el croquis y sus archivos portátiles. Ver [uso y límites de la presentación 3D](docs/presentacion-3d-etapa2-2026-11-07.md). Blender y el video siguen pendientes.
+Segunda etapa, ya disponible en producción: **Acabados y techo** permite elegir pintura, piso y cubierta plana o a dos aguas, y **Entrar a la casa** habilita el recorrido a altura de persona con colisiones. Las preferencias se guardan con el croquis y sus archivos portátiles. Ver [uso y límites de la presentación 3D](docs/presentacion-3d-etapa2-2026-11-07.md). Blender está disponible; el video sigue pendiente.
 
-Tercera etapa local: imágenes PNG con **Blender**, cola en segundo plano, historial privado y descarga desde el visor. Incluye un trabajador opcional para Docker; su ejecución Linux y el despliegue siguen pendientes. Ver [renderizado con Blender](docs/renderizado-blender-2026-11-07.md). El video continúa pendiente.
+Tercera etapa, ya desplegada y verificada: imágenes PNG con **Blender**, cola en segundo plano, historial privado y descarga desde el visor. Incluye un trabajador aislado en Docker; ver [despliegue confirmado](docs/despliegue-3d-2026-11-07.md). Ver [renderizado con Blender](docs/renderizado-blender-2026-11-07.md). El video continúa pendiente.
 
 ## Anotaciones en el plano
 
-El botón **Anotaciones** permite colocar textos y flechas, moverlos, editar color/tamaño y guardarlos con el proyecto. Se incluyen en PNG/PDF y archivos portátiles, sin alterar materiales. Ver [uso y verificación de anotaciones](docs/anotaciones-2026-11-07.md). Esta actualización está probada en local y aún no desplegada.
+El botón **Anotaciones** permite colocar textos y flechas, moverlos, editar color/tamaño y guardarlos con el proyecto. Se incluyen en PNG/PDF y archivos portátiles, sin alterar materiales. Ver [uso y verificación de anotaciones](docs/anotaciones-2026-11-07.md). Las anotaciones están desplegadas en producción.
+
+## Calidad visual 3D — etapa local
+
+Puertas y ventanas con detalles, materiales y luz mejorados, aleros ajustables y renders desde la vista actual (también interior). Uso, pruebas y límites en [calidad visual 3D](docs/calidad-visual-3d-2026-11-21.md). Esta etapa aún no se ha desplegado.

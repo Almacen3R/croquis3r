@@ -10,7 +10,7 @@ test('left quarter turn places top at left, keeps grid, identifiers, sizes and i
  assert.deepEqual(rotated.columns[0],{...document.columns[0],x:3,y:-.5});
  assert.deepEqual(rotated.annotations[0],{...document.annotations[0],x1:2,y1:-1,x2:3,y2:-2});
  assert.deepEqual(rotated.annotations[1],{...document.annotations[1],x:1,y:0});
- assert.equal(rotated.presentation3d.ridge_axis,'y');
+ assert.equal(rotated.presentation3d.ridge_axis,'z');
  assert.deepEqual(rotated.objects.at(-1),document.objects.at(-1));
  assert.deepEqual(rotated.objects.slice(0,4).map(length),walls.map(length));
  assert.equal(floorArea(rotated.objects.slice(0,4)).area,floorArea(walls).area);

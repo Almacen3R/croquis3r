@@ -4,6 +4,8 @@ const {buildHouseScene}=await import(`./scene3d.mjs${new URL(import.meta.url).se
 const {presentationSettings,buildRoof,findWalkStart,walkStep}=await import(`./presentation3d.mjs${new URL(import.meta.url).search}`);
 const {setupRenders}=await import(`./renders3d.mjs${new URL(import.meta.url).search}`);
 
+const {openingDetails}=await import(`./visual-details3d.mjs${new URL(import.meta.url).search}`);
+
 function floorTexture(finish) {
   if(finish==='concrete')return null;
   const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
@@ -19,6 +21,24 @@ function floorTexture(finish) {
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
   texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
   texture.repeat.set(finish==='wood'?1:1/.6,finish==='wood'?1:1/.6);
+  return texture;
+}
+
+function surfaceTexture(kind) {
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
+  const ctx=canvas.getContext('2d');
+  if(kind==='wood') {
+    ctx.fillStyle='#97694a';ctx.fillRect(0,0,128,128);
+    for(let x=0;x<128;x+=3){ctx.strokeStyle=`rgba(48,23,10,${.07+(x%7)*.015})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,0);ctx.bezierCurveTo(x+4,40,x-3,80,x+1,128);ctx.stroke();}
+  } else if(kind==='roof') {
+    const gradient=ctx.createLinearGradient(0,0,128,0);gradient.addColorStop(0,'#666');gradient.addColorStop(.45,'#ddd');gradient.addColorStop(1,'#666');ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);
+  } else {
+    let seed=1729;const pixels=ctx.createImageData(128,128);
+    for(let i=0;i<pixels.data.length;i+=4){seed=(seed*1664525+1013904223)>>>0;const value=180+(seed%50);pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=value;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);
+  }
+  const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+  if(kind==='wood')texture.colorSpace=THREE.SRGBColorSpace;
+  texture.repeat.set(kind==='roof'?8:kind==='plaster'?4:1,kind==='plaster'?4:1);
   return texture;
 }
 
@@ -41,10 +61,10 @@ export function openHouseViewer(source, name, onSettingsChange=()=>{}, sketchId=
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
   renderer.setClearColor(0xece9df);
   renderer.shadowMap.enabled=true;
-  renderer.shadowMap.type=THREE.PCFShadowMap;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.2;
+  renderer.toneMappingExposure=1.05;
   renderer.domElement.setAttribute('aria-label','Modelo 3D de la casa. Arrastra para girar y usa la rueda para acercar.');
   renderer.domElement.tabIndex=0;
   host.replaceChildren(renderer.domElement);
@@ -61,25 +81,34 @@ export function openHouseViewer(source, name, onSettingsChange=()=>{}, sketchId=
     frame:new THREE.MeshStandardMaterial({color:0x343a38,roughness:.5}),
     column:new THREE.MeshStandardMaterial({color:0xc3beb2,roughness:.95}),
     door:new THREE.MeshStandardMaterial({color:0x97694a,roughness:.65}),
-    window:new THREE.MeshStandardMaterial({color:0x86bfcb,transparent:true,opacity:.45,roughness:.18,metalness:.1,depthWrite:false,side:THREE.DoubleSide}),
+    window:new THREE.MeshPhysicalMaterial({color:0xc9e1e5,transparent:true,opacity:.36,roughness:.07,metalness:0,clearcoat:.65,ior:1.45,depthWrite:false,side:THREE.DoubleSide}),
+    metal:new THREE.MeshStandardMaterial({color:0xb8c0c3,roughness:.25,metalness:.75}),
+    sill:new THREE.MeshStandardMaterial({color:0xdedbd2,roughness:.8}),
+    base:new THREE.MeshStandardMaterial({color:0xc9c7be,roughness:.9}),
     floor:new THREE.MeshStandardMaterial({color:0xcbbba1,roughness:.8,side:THREE.DoubleSide}),
     roof:new THREE.MeshStandardMaterial({color:0x464b4b,roughness:.65,metalness:.2,side:THREE.DoubleSide}),
   };
-  const box=(spec,role)=>{
+  materials.wall.bumpMap=surfaceTexture('plaster');materials.wall.bumpScale=.004;
+  materials.door.map=surfaceTexture('wood');
+  materials.roof.bumpMap=surfaceTexture('roof');materials.roof.bumpScale=.008;
+  const box=(spec,role,parent=house)=>{
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(...spec.size),materials[role]);
     mesh.position.fromArray(spec.position);mesh.rotation.y=spec.rotation;
     mesh.castShadow=role!=='window';mesh.receiveShadow=true;
-    house.add(mesh);return mesh;
+    parent.add(mesh);return mesh;
   };
   for(const spec of sceneData.boxes)box(spec,spec.role);
   const doors=[];
   for(const spec of sceneData.openings) {
-    const mesh=box(spec,spec.kind);
-    if(spec.kind==='door')doors.push({mesh,spec});
+    const group=new THREE.Group();group.position.fromArray(spec.position);group.rotation.y=spec.rotation;house.add(group);
+    box({...spec,position:[0,0,0],rotation:0},spec.kind,group);
+    for(const detail of openingDetails(spec))box(detail,detail.role,group);
+    if(spec.kind==='door')doors.push({mesh:group,spec});
   }
   for(const ring of sceneData.floors) {
     // Shape local XY -> horizontal world XZ. The same rings support concave plans.
     const shape=new THREE.Shape(ring.map(p=>new THREE.Vector2(p.x,-p.y)));
+    const base=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth:.1,bevelEnabled:false}),materials.base);base.rotation.x=-Math.PI/2;base.position.y=-.12;base.castShadow=base.receiveShadow=true;house.add(base);
     const mesh=new THREE.Mesh(new THREE.ShapeGeometry(shape),materials.floor);
     mesh.rotation.x=-Math.PI/2;mesh.position.y=-.005;mesh.receiveShadow=true;house.add(mesh);
   }
@@ -97,6 +126,7 @@ export function openHouseViewer(source, name, onSettingsChange=()=>{}, sketchId=
       for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];add(a,lower(a),b);add(b,lower(a),lower(b));}
     }
     const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.computeVertexNormals();
+    const uvs=[];for(let i=0;i<positions.length;i+=3)uvs.push(positions[i],positions[i+2]);geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
     const mesh=new THREE.Mesh(geometry,closure?materials.wall:materials.roof);mesh.castShadow=mesh.receiveShadow=true;roof.add(mesh);
   };
   const rebuildRoof=()=>{
@@ -114,10 +144,10 @@ export function openHouseViewer(source, name, onSettingsChange=()=>{}, sketchId=
   };
   applyFinishes();rebuildRoof();
   controls.maxDistance=radius*12;
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(radius*6,radius*6),new THREE.MeshStandardMaterial({color:0xe0ddcf,roughness:1}));
-  ground.rotation.x=-Math.PI/2;ground.position.set(center.x,-.035,center.z);ground.receiveShadow=true;scene.add(ground);
-  scene.add(new THREE.HemisphereLight(0xfffaf0,0x9b9e8e,2.3));
-  const sun=new THREE.DirectionalLight(0xfff4de,3.2);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(radius*80,radius*80),new THREE.MeshStandardMaterial({color:0xe0ddcf,roughness:1}));
+  ground.rotation.x=-Math.PI/2;ground.position.set(center.x,-.145,center.z);ground.receiveShadow=true;scene.add(ground);
+  scene.add(new THREE.HemisphereLight(0xe5efff,0xb3a38d,2.0));
+  const sun=new THREE.DirectionalLight(0xfff4df,2.8);
   sun.position.copy(center).add(new THREE.Vector3(radius,2*radius,radius*.8));
   sun.target.position.copy(center);scene.add(sun,sun.target);
   sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
@@ -177,17 +207,17 @@ export function openHouseViewer(source, name, onSettingsChange=()=>{}, sketchId=
   const open=document.getElementById('viewer3d-doors');open.checked=false;
   open.onchange=()=>{for(const {mesh,spec} of doors){mesh.position.fromArray(open.checked?spec.openPosition:spec.position);mesh.rotation.y=open.checked?spec.openRotation:spec.rotation;}};
   hideRoof.onchange=()=>{roof.visible=!hideRoof.checked;};
-  const settingsControls=new Map(['wall_color','floor_finish','roof_type','roof_color','ridge_axis','roof_rise'].map(key=>[key,document.getElementById(`viewer3d-${key.replaceAll('_','-')}`)]));
+  const settingsControls=new Map(['wall_color','floor_finish','roof_type','roof_color','ridge_axis','roof_rise','roof_overhang'].map(key=>[key,document.getElementById(`viewer3d-${key.replaceAll('_','-')}`)]));
   const syncSettings=()=>{
     for(const [key,input] of settingsControls)input.value=String(settings[key]);
     for(const key of ['roof_rise','ridge_axis'])settingsControls.get(key).disabled=settings.roof_type!=='gable';
-    settingsControls.get('roof_color').disabled=settings.roof_type==='none';
+    settingsControls.get('roof_color').disabled=settings.roof_type==='none';settingsControls.get('roof_overhang').disabled=settings.roof_type==='none';
   };
   syncSettings();
-  const stopRenders=setupRenders({source,name:name||'Casa sin nombre',sceneData,getSettings:()=>settings,sketchId});
+  const stopRenders=setupRenders({source,name:name||'Casa sin nombre',sceneData,getSettings:()=>settings,getView:()=>{const direction=new THREE.Vector3();camera.getWorldDirection(direction);return {position:camera.position.toArray(),target:mode==='orbit'?controls.target.toArray():camera.position.clone().add(direction).toArray(),fov:camera.fov,hideRoof:hideRoof.checked,doorsOpen:open.checked};},sketchId});
   for(const [key,input] of settingsControls)input.onchange=()=>{
     if(!input.checkValidity()){input.reportValidity();return;}
-    settings={...settings,[key]:key==='roof_rise'?Number(input.value):input.value};
+    settings={...settings,[key]:['roof_rise','roof_overhang'].includes(key)?Number(input.value):input.value};
     if(key==='roof_type')hideRoof.checked=false;
     applyFinishes();rebuildRoof();syncSettings();onSettingsChange({...settings});
     if(mode==='orbit')preset('perspective');
@@ -238,7 +268,7 @@ export function openHouseViewer(source, name, onSettingsChange=()=>{}, sketchId=
     const geometries=new Set(),usedMaterials=new Set(Object.values(materials));
     scene.traverse(object=>{if(object.geometry)geometries.add(object.geometry);if(object.material)usedMaterials.add(object.material);});
     for(const geometry of geometries)geometry.dispose();
-    for(const material of usedMaterials){material.map?.dispose();material.dispose();}
+    const textures=new Set();for(const material of usedMaterials){for(const key of ['map','bumpMap','roughnessMap'])if(material[key])textures.add(material[key]);material.dispose();}for(const texture of textures)texture.dispose();
     sun.shadow.dispose();renderer.dispose();renderer.forceContextLoss();host.replaceChildren();
     cutaway.onchange=open.onchange=hideRoof.onchange=null;for(const button of buttons)button.onclick=null;
     for(const input of settingsControls.values())input.onchange=null;

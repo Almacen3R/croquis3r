@@ -191,7 +191,7 @@ def validate_presentation3d(settings):
         'roof_color': ('charcoal', 'terracotta', 'gray'),
         'ridge_axis': ('x', 'z'),
     }
-    if set(settings) - set(choices) - {'roof_rise'}:
+    if set(settings) - set(choices) - {'roof_rise', 'roof_overhang'}:
         raise InvalidDocument('La presentación 3D contiene opciones desconocidas.')
     result = {}
     for key, values in choices.items():
@@ -203,6 +203,10 @@ def validate_presentation3d(settings):
         if isinstance(settings['roof_rise'], bool):
             raise InvalidDocument('La elevación del techo debe ser un número de 0,30 a 3 m.')
         result['roof_rise'] = float(number(settings['roof_rise'], 'Elevación del techo', '.3', 3))
+    if 'roof_overhang' in settings:
+        if isinstance(settings['roof_overhang'], bool):
+            raise InvalidDocument('El alero debe medir entre 0 y 0,60 m.')
+        result['roof_overhang'] = float(number(settings['roof_overhang'], 'Alero', 0, '.6'))
     return result
 
 

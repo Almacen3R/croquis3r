@@ -88,6 +88,64 @@ class RenderTests(AuthenticatedTestCase):
                 close_connection.assert_not_called()
             self.assertTrue(RenderJob.objects.filter(pk=job.pk).exists())
 
+    @override_settings(RENDER_TIMEOUT=60)
+    def test_listing_expires_overdue_jobs_only_in_the_users_visible_scope(self):
+        seller=get_user_model().objects.create_user('status_seller')
+        old=timezone.now()-timedelta(seconds=125)
+        own=RenderJob.objects.create(owner=seller,title='Old',document=doc(wall()),scene=scene(),fingerprint='a'*64,status='running',started_at=old)
+        other=RenderJob.objects.create(owner=self.other,title='Private',document=doc(wall()),scene=scene(),fingerprint='b'*64,status='running',started_at=old)
+        active=RenderJob.objects.create(owner=seller,title='Active',document=doc(wall()),scene=scene(),fingerprint='c'*64,status='running',started_at=timezone.now()-timedelta(seconds=5))
+        self.client.force_login(seller)
+        response=self.client.get('/api/renders/').json()
+        self.assertEqual(response['timeout_seconds'],60)
+        own.refresh_from_db();other.refresh_from_db();active.refresh_from_db()
+        self.assertEqual(own.status,'failed')
+        self.assertIn('interrumpió',own.error)
+        self.assertEqual(other.status,'running')
+        self.assertEqual(active.status,'running')
+        self.assertTrue(all('elapsed_seconds' in job for job in response['jobs']))
+
+    def test_missing_heartbeat_is_reported_without_prematurely_failing_active_work(self):
+        job=RenderJob.objects.create(owner=self.user,title='Working',document=doc(wall()),scene=scene(),fingerprint='d'*64,status='running',started_at=timezone.now())
+        RenderWorker.objects.update(heartbeat=timezone.now()-timedelta(seconds=30))
+        response=self.client.get('/api/renders/').json()
+        self.assertFalse(response['available'])
+        job.refresh_from_db();self.assertEqual(job.status,'running')
+        self.assertEqual(response['jobs'][0]['status'],'running')
+
+    @override_settings(RENDER_TIMEOUT=60)
+    def test_overdue_work_no_longer_blocks_the_owners_submission_quota(self):
+        for i in range(2):
+            RenderJob.objects.create(owner=self.user,title='Interrupted',document=doc(wall()),scene=scene(),fingerprint='e'*64,status='running',started_at=timezone.now()-timedelta(seconds=125))
+        self.assertEqual(self.post().status_code,202)
+        self.assertEqual(RenderJob.objects.filter(owner=self.user,status='failed').count(),2)
+
+    def test_camera_details_and_visual_overhang_are_bounded(self):
+        data = scene()
+        data['details'] = [{'role':'metal','position':[1,1,0], 'size':[.1,.02,.04], 'rotation':0}]
+        data['camera'] = {'position':[2,1.6,2], 'target':[2,1.6,0], 'fov':70}
+        data['settings'] = {'roof_overhang':.25, 'ridge_axis':'z'}
+        cleaned = validate_scene(data)
+        self.assertEqual(cleaned['camera'], data['camera'])
+        self.assertEqual(cleaned['details'], data['details'])
+        self.assertEqual(cleaned['settings']['roof_overhang'], .25)
+        for mutate in (lambda d:d['camera'].update(position=[float('inf'),0,0]),
+                       lambda d:d['camera'].update(target=d['camera']['position']),
+                       lambda d:d['camera'].update(fov=0),
+                       lambda d:d['details'][0].update(role='script'),
+                       lambda d:d['settings'].update(roof_overhang=.61)):
+            invalid = copy.deepcopy(data)
+            mutate(invalid)
+            with self.assertRaises(InvalidDocument):
+                validate_scene(invalid)
+
+    def test_visual_settings_do_not_change_material_quantities(self):
+        from .modulation import calculate_modulation
+        original = doc(wall())
+        styled = {**original, 'presentation3d': {'roof_type':'gable', 'roof_overhang':.4, 'ridge_axis':'z'}}
+        self.assertEqual(calculate_modulation(original,{})['items'], calculate_modulation(styled,{})['items'])
+        self.assertEqual(validate_document(styled,{})['presentation3d']['ridge_axis'], 'z')
+
     def test_scene_bounds_and_settings_are_validated(self):
         for mutation in [lambda s:s.update(boxes=[]),lambda s:s['boxes'][0].update(role='script'),
                          lambda s:s['boxes'][0].update(position=[1,float('inf'),0]),

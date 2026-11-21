@@ -29,15 +29,15 @@ def vector(value, low=-110, high=110):
 def validate_scene(data):
     if not isinstance(data, dict) or type(data.get('version')) is not int or data.get('version') != 1 or data.get('units') != 'm':
         raise InvalidDocument('Escena 3D incompatible.')
-    result = {'version': 1, 'units': 'm', 'boxes': [], 'openings': [], 'floors': [], 'roof': {}}
+    result = {'version': 1, 'units': 'm', 'boxes': [], 'openings': [], 'details': [], 'floors': [], 'roof': {}}
     def boxes(key, roles, maximum):
-        entries = data.get(key)
+        entries = data.get(key, [] if key == 'details' else None)
         if not isinstance(entries, list) or len(entries) > maximum:
             raise InvalidDocument('La presentación tiene demasiadas piezas.')
         for entry in entries:
-            if not isinstance(entry, dict) or entry.get('role' if key == 'boxes' else 'kind') not in roles:
+            if not isinstance(entry, dict) or entry.get('kind' if key == 'openings' else 'role') not in roles:
                 raise InvalidDocument('Pieza 3D inválida.')
-            role_key = 'role' if key == 'boxes' else 'kind'
+            role_key = 'kind' if key == 'openings' else 'role'
             position = vector(entry.get('position'))
             size = vector(entry.get('size'), .001, 300)
             if size[1] > 15 or size[2] > 2:
@@ -46,6 +46,7 @@ def validate_scene(data):
                 'rotation': float(number(entry.get('rotation'), 'Giro', -math.tau, math.tau))})
     boxes('boxes', ('wall', 'frame', 'column'), 6000)
     boxes('openings', ('door', 'window'), 300)
+    boxes('details', ('frame', 'door', 'metal', 'sill'), 4000)
     if not result['boxes']:
         raise InvalidDocument('La escena debe contener paredes o columnas.')
     floors = data.get('floors')
@@ -78,6 +79,15 @@ def validate_scene(data):
             vertices += len(face)
     if vertices > 20000:
         raise InvalidDocument('La presentación tiene demasiados vértices.')
+    if 'camera' in data:
+        camera = data['camera']
+        if not isinstance(camera, dict):
+            raise InvalidDocument('Cámara de presentación inválida.')
+        position, target = vector(camera.get('position'), -2000, 2000), vector(camera.get('target'), -110, 110)
+        if math.dist(position, target) < .05:
+            raise InvalidDocument('La cámara debe mirar hacia un punto diferente.')
+        result['camera'] = {'position': position, 'target': target,
+                            'fov': float(number(camera.get('fov'), 'Ángulo de cámara', 15, 100))}
     result['settings'] = validate_presentation3d(data.get('settings', {}))
     return result
 
@@ -87,8 +97,22 @@ def render_path(job):
     return settings.RENDER_ROOT / str(job.pk) / 'render.png'
 
 
+def expire_overdue_jobs(records):
+    """A stopped worker must not leave a running job blocking an account forever."""
+    from django.db.models import Q
+    now = timezone.now()
+    cutoff = now - timedelta(seconds=settings.RENDER_TIMEOUT + 60)
+    return records.filter(status='running').filter(
+        Q(started_at__lt=cutoff) | Q(started_at__isnull=True, created_at__lt=cutoff)
+    ).update(status='failed', finished_at=now,
+             error='La generación superó el tiempo disponible o se interrumpió. Puedes solicitar una nueva imagen.')
+
+
 def serialize_job(job):
     return {'id': str(job.pk), 'title': job.title, 'status': job.status,
         'error': job.error, 'created_at': job.created_at.isoformat(),
+        'started_at': job.started_at.isoformat() if job.started_at else None,
+        'finished_at': job.finished_at.isoformat() if job.finished_at else None,
+        'elapsed_seconds': max(0, int(((job.finished_at or timezone.now()) - (job.started_at or job.created_at)).total_seconds())),
         'sketch_revision': job.sketch_revision, 'fingerprint': job.fingerprint[:12],
         'image_url': f'/api/renders/{job.pk}/image/' if job.status == 'ready' else None}
