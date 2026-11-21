@@ -8,6 +8,8 @@ const {rotateDrawingLeft}=await import(`./rotation.mjs${new URL(import.meta.url)
 
 const {recalculateWithSettings}=await import(`./calculation-flow.mjs${new URL(import.meta.url).search}`);
 
+const {unionBounds,centerViewOnBounds,fitViewToBounds}=await import(`./viewport.mjs${new URL(import.meta.url).search}`);
+
 const $ = id => document.getElementById(id);
 const {setupPanels}=await import(`./panels.mjs${new URL(import.meta.url).search}`);
 setupPanels(document.querySelector('.workspace'));
@@ -19,6 +21,7 @@ const state = {document: {version: 1, objects: []}, selected: null, tool: 'selec
 let drag = null;
 let panDrag = null;
 let annotationFocus = null;
+let pendingCenterMode = null;
 let settingsDirty = false;
 let downloadInProgress = false;
 const walls = () => state.document.objects.filter(o => o.kind === 'wall');
@@ -298,9 +301,10 @@ async function estimate() {
     const result = await api('/api/ticoblock-estimate/', {method:'POST', body:JSON.stringify({document:state.document})});
     if (request !== state.estimateRequest) return;
     state.estimate = result; renderEstimate(); renderPricing(result.pricing);
+    if(pendingCenterMode){const mode=pendingCenterMode;pendingCenterMode=null;centerDrawing(mode);}
   } catch (error) {
     if (request !== state.estimateRequest) return;
-    state.estimate = null; $('estimate-status').textContent = 'No se pudo calcular. Corrige el croquis.';
+    pendingCenterMode=null;state.estimate = null; $('estimate-status').textContent = 'No se pudo calcular. Corrige el croquis.';
     message(error.message, true);
   }
 }
@@ -368,17 +372,23 @@ function tab(which) {
   $('object-panel').hidden = which !== 'object'; $('materials-panel').hidden = which !== 'materials';
   $('tab-object').classList.toggle('active', which === 'object'); $('tab-materials').classList.toggle('active', which === 'materials');
 }
-function fit() {
-  const points=[...walls().flatMap(w=>[{x:w.x1,y:w.y1},{x:w.x2,y:w.y2}]),...(state.document.columns||[])];
-  const notesBox=$('scene').querySelector('[data-annotation]')?$('scene').getBBox():null;
-  if(notesBox)points.push({x:notesBox.x,y:notesBox.y},{x:notesBox.x+notesBox.width,y:notesBox.y+notesBox.height});
-  if (!points.length) {state.view = [-2,-2,16,12]; applyView(); return;}
-  const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
-  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
-  state.view=[minX-1.8,minY-1.8,Math.max(6,maxX-minX+3.6),Math.max(5,maxY-minY+3.6)];applyView();
+function visibleDrawingBounds() {
+  return unionBounds(['scene','measurements','modulation'].map(id=>{
+    const group=$(id);return group.childNodes.length?group.getBBox():null;
+  }));
 }
+function centerDrawing(mode='preserve') {
+  const bounds=visibleDrawingBounds();
+  state.view=mode==='fit'?fitViewToBounds(bounds,svg.getBoundingClientRect()):centerViewOnBounds(state.view,bounds);
+  applyView();
+}
+function fit() {
+  if(panDrag)finishPan();
+  pendingCenterMode=state.estimate?null:'fit';centerDrawing('fit');
+}
+
 function applyView() {svg.setAttribute('viewBox',state.view.join(' ')); $('zoom-label').textContent = `${Math.round(1600/state.view[2])}%`;}
-function zoom(factor,anchor=null) {if(panDrag)finishPan();state.view=zoomView(state.view,factor,anchor);applyView();}
+function zoom(factor,anchor=null) {pendingCenterMode=null;if(panDrag)finishPan();state.view=zoomView(state.view,factor,anchor);applyView();}
 svg.addEventListener('wheel',event=>{
   event.preventDefault();
   const delta=event.deltaY*(event.deltaMode===1?20:event.deltaMode===2?300:1);
@@ -434,7 +444,7 @@ async function requestName(title, suggestion) {
   return new Promise(resolve => dialog.addEventListener('close', () => resolve(dialog.returnValue === 'save' ? $('dialog-name').value.trim() : null), {once:true}));
 }
 function replaceDocument(document, name, saved = null) {
-  settingsDirty = false;
+  settingsDirty = false;pendingCenterMode=null;state.estimate=null;state.estimateRequest++;clearTimeout(state.estimateTimer);
   state.document = document; state.selected = null; state.history = []; state.future = []; state.id = saved?.id || null;
   state.revision = saved?.revision || null; state.isTemplate = false; state.dirty = !saved;
   $('project-name').value = name; $('save-status').textContent = saved ? `Guardado · revisión ${saved.revision}` : 'Sin guardar';
@@ -451,6 +461,7 @@ function example() {
 
 svg.addEventListener('pointerdown', action(event => {
   if (event.button !== 0 && event.button !== 1) return;
+  pendingCenterMode=null;
   const p = point(event), target = event.target.closest('[data-object]');
   const hitId=target?.dataset.object;
   const obj = structuralHit(rawPoint(event),state.document.objects,state.document.columns||[],hitId,state.tool) ||
@@ -638,8 +649,8 @@ $('rotate-left').onclick=action(async()=>{
   const before=snapshot(),candidate=rotateDrawingLeft(before);
   await api('/api/estimate/',{method:'POST',body:JSON.stringify({document:candidate})});
   if(settingsDirty||JSON.stringify(state.document)!==JSON.stringify(before))throw new Error('El croquis cambió mientras se preparaba el giro. Vuelve a pulsar Girar.');
-  mutate(()=>{state.document=candidate;});setTool('select');fit();
-  message('Croquis girado 90° a la izquierda. Puedes deshacer el giro. Guarda para conservarlo.');
+  mutate(()=>{state.document=candidate;});setTool('select');pendingCenterMode='preserve';centerDrawing();
+  message('Croquis girado 90° a la izquierda y centrado, conservando el zoom. Puedes deshacer el giro. Guarda para conservarlo.');
 });
 $('recalculate').onclick=action(()=>recalculateWithSettings(settingsDirty,applyModulationSettings,estimate));$('dimensions').onchange=render;
 // Visual preference only: hiding the grid does not change snapping or the drawing.
