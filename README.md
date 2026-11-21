@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: 21 de noviembre de 2026.** Croquis3R funciona en producción LAN con PostgreSQL y consulta de precios homologados de 3R. La versión `dd41b149a6a2` está desplegada y verificada: editor, cálculo por paños, proyectos privados, anotaciones, descargas, PDF con cálculo unificado de materiales y visor/recorrido/render 3D. La nueva [mejora visual 3D](docs/calidad-visual-3d-2026-11-21.md) se prueba únicamente en local. El cálculo no sustituye la revisión profesional de la construcción.
+**Estado: 21 de noviembre de 2026.** Croquis3R funciona en producción LAN con PostgreSQL y consulta de precios homologados de 3R. La versión `91246276f8c2` está desplegada y verificada: editor, cálculo por paños, proyectos privados, anotaciones, descargas, PDF con cálculo unificado de materiales y visor/recorrido/render 3D. La nueva [mejora visual 3D](docs/calidad-visual-3d-2026-11-21.md) ya está aplicada y verificada en producción. El cálculo no sustituye la revisión profesional de la construcción.
 
 ## Qué se puede probar
 
@@ -148,6 +148,6 @@ Tercera etapa, ya desplegada y verificada: imágenes PNG con **Blender**, cola e
 
 El botón **Anotaciones** permite colocar textos y flechas, moverlos, editar color/tamaño y guardarlos con el proyecto. Se incluyen en PNG/PDF y archivos portátiles, sin alterar materiales. Ver [uso y verificación de anotaciones](docs/anotaciones-2026-11-07.md). Las anotaciones están desplegadas en producción.
 
-## Calidad visual 3D — etapa local
+## Calidad visual 3D — disponible en producción
 
-Puertas y ventanas con detalles, materiales y luz mejorados, aleros ajustables y renders desde la vista actual (también interior). Uso, pruebas y límites en [calidad visual 3D](docs/calidad-visual-3d-2026-11-21.md). Esta etapa aún no se ha desplegado.
+Puertas y ventanas con detalles, materiales y luz mejorados, aleros ajustables y renders desde la vista actual (también interior). Uso, pruebas y límites en [calidad visual 3D](docs/calidad-visual-3d-2026-11-21.md). Esta etapa está aplicada y verificada en producción; incluye seguimiento de disponibilidad, tiempos y trabajos interrumpidos.
