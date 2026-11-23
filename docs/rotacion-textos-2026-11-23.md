@@ -8,6 +8,10 @@ La propiedad opcional text_rotation admite únicamente enteros 0/90/180/270. Doc
 
 No cambia paredes, materiales ni 3D. Sin migraciones ni dependencias nuevas. El giro general del croquis mantiene la orientación elegida para cada texto; el nuevo botón permite ajustar cada rótulo por separado.
 
-Pruebas de ángulos admitidos y rechazados, materiales invariantes, guardado/plantilla/importación, transformaciones SVG, texto de varios renglones, zona de selección y conservación al mover/descargar el proyecto. Pendiente de despliegue y verificación productiva.
+Pruebas de ángulos admitidos y rechazados, materiales invariantes, guardado/plantilla/importación, transformaciones SVG, texto de varios renglones, zona de selección y conservación al mover/descargar el proyecto. Desplegado y verificado en producción LAN con la versión `1a0571ae709a`.
 
 Verificación: 166 pruebas Django y 88 JavaScript aprobadas (254). La aplicación también evita sobrescribir cambios hechos durante la validación del formulario.
+
+Producción: actualización terminada con estado success y código 0. Se ejecutaron las 166 pruebas Django sobre PostgreSQL y el render de prueba Blender Linux produjo un PNG de 1280 × 960. Se conservaron 4 artículos, 5 atenciones, 1 plantilla de objetos y 21 croquis. Respaldo previo: `/data/projects/croquis3r/backup-staging/update-20261123T140532Z`.
+
+La comprobación HTTP autenticada confirmó los archivos editor.js y annotations.mjs idénticos por SHA-256 al código probado, giro 270 aceptado y 45 rechazado por la API, y salud OK. No se guardaron proyectos de prueba.

@@ -2,7 +2,7 @@
 
 Prototipo web para dibujar croquis de casas, vincular objetos con artículos de ferretería y obtener una estimación de materiales. Surge del flujo de atención de clientes de la alianza con TicoBlock.
 
-**Estado: 21 de noviembre de 2026.** Croquis3R funciona en producción LAN con PostgreSQL y consulta de precios homologados de 3R. La versión `e8ce8ae91b16` está desplegada y verificada: editor, cálculo por paños, proyectos privados, anotaciones, descargas, PDF con cálculo unificado de materiales y visor/recorrido/render 3D. La nueva [mejora visual 3D](docs/calidad-visual-3d-2026-11-21.md) ya está aplicada y verificada en producción. El cálculo no sustituye la revisión profesional de la construcción.
+**Estado: 23 de noviembre de 2026.** Croquis3R funciona en producción LAN con PostgreSQL y consulta de precios homologados de 3R. La versión `1a0571ae709a` está desplegada y verificada: editor, cálculo por paños, proyectos privados, anotaciones, descargas, PDF con cálculo unificado de materiales y visor/recorrido/render 3D. La nueva [mejora visual 3D](docs/calidad-visual-3d-2026-11-21.md) ya está aplicada y verificada en producción. El cálculo no sustituye la revisión profesional de la construcción.
 
 ## Qué se puede probar
 
@@ -153,3 +153,5 @@ El botón **Anotaciones** permite colocar textos y flechas, moverlos, editar col
 Puertas y ventanas con detalles, materiales y luz mejorados, aleros ajustables y renders desde la vista actual (también interior). Uso, pruebas y límites en [calidad visual 3D](docs/calidad-visual-3d-2026-11-21.md). Esta etapa está aplicada y verificada en producción; incluye seguimiento de disponibilidad, tiempos y trabajos interrumpidos.
 
 El giro de 90° conserva el zoom; Centrar encuadra correctamente el contenido incluso después del giro. [Corrección y verificación productiva](docs/giro-centrado-2026-11-21.md).
+
+Las anotaciones permiten [girar el texto en pasos de 90°](docs/rotacion-textos-2026-11-23.md), con conservación en guardado, plantillas y descargas. Desplegado y verificado en producción.
