@@ -136,6 +136,11 @@ def validate_document(document, articles):
                 raise InvalidDocument('Color de anotación inválido.')
             item = {'id':aid, 'kind':annotation['kind'], 'text':text, 'color':color,
                     'font_size':float(number(annotation.get('font_size', .25), 'Tamaño del texto', .12, 1))}
+            if 'text_rotation' in annotation:
+                rotation = annotation['text_rotation']
+                if type(rotation) is not int or rotation not in (0, 90, 180, 270):
+                    raise InvalidDocument('El texto admite giros de 0, 90, 180 o 270 grados.')
+                item['text_rotation'] = rotation
             for key in (('x','y') if item['kind']=='text' else ('x1','y1','x2','y2')):
                 item[key] = float(number(annotation.get(key), 'Posición de anotación', -100, 100))
             if item['kind']=='arrow' and wall_length(item) < Decimal('.1'):

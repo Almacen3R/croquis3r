@@ -36,3 +36,27 @@ test('SVG text preserves blank lines and CRLF with explicit baselines for PNG/PD
   assert.deepEqual(lines.map(n=>n.attrs.x),[2,2,2,2]);
   assert.deepEqual(lines.map(n=>n.attrs.y),[3,3.325,3.65,3.975]);
 });
+
+
+test('text and its selection region rotate together while arrow endpoints remain unchanged',async()=>{
+ const {drawAnnotations}=await import('../src/static/croquis/annotations.mjs');
+ for(const kind of ['text','arrow'])for(const angle of [0,90,180,270]){
+  const nodes=[];
+  const draw=(tag,attrs,parent,text)=>{const node={tag,attrs,parent,text,getBBox:()=>({x:2,y:2.8,width:2,height:.6})};nodes.push(node);return node;};
+  const annotation={id:'r',kind,x:2,y:3,x1:2,y1:3,x2:5,y2:4,text:'Dos\nrenglones',font_size:.25,text_rotation:angle};
+  drawAnnotations([annotation],draw,{},'r');
+  const group=nodes.find(n=>n.attrs['data-annotation-text']==='');
+  assert.equal(group.attrs.transform,`rotate(${angle} 2 ${kind==='text'?3:2.82})`);
+  assert.equal(nodes.find(n=>n.tag==='text').parent,group);
+  assert.equal(nodes.find(n=>n.attrs['data-handle']==='selection').parent,group);
+  assert.equal(nodes.find(n=>n.tag==='rect'&&n.attrs['data-annotation-hit']==='').parent,group);
+  if(kind==='arrow')assert.equal(nodes.find(n=>n.tag==='line').parent.attrs.transform,undefined);
+  assert.equal(nodes.filter(n=>n.tag==='tspan').length,2);
+ }
+});
+test('portable files and moving preserve text rotation',()=>{
+ const note={id:'n',kind:'text',x:1,y:2,text:'Nota',text_rotation:270};
+ assert.equal(moveAnnotation(note,2,3).text_rotation,270);
+ const project=JSON.parse(packProject('Notas',{version:1,objects:[],annotations:[note]},[]));
+ assert.equal(project.document.annotations[0].text_rotation,270);
+});

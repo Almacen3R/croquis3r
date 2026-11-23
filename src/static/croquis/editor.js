@@ -238,6 +238,14 @@ function renderInspector() {
     const colorLabel=element('label',{},'Color'),color=element('select',{name:'color'});
     for(const [value,text] of [['black','Negro'],['blue','Azul'],['red','Rojo']])color.append(element('option',{value},text));
     color.value=obj.color||'black';colorLabel.append(color);grid.append(colorLabel);
+    const textRotation=element('input',{type:'hidden',name:'text_rotation',value:obj.text_rotation||0});
+    const rotateText=element('button',{id:'rotate-annotation-text',type:'button',class:'secondary'},'↶ Girar texto 90°');
+    rotateText.title='Girar solo el texto de esta anotación 90 grados a la izquierda';
+    rotateText.onclick=()=>{
+      const form=$('properties');if(!form.reportValidity())return;
+      textRotation.value=String((Number(textRotation.value)+270)%360);rotateText.disabled=true;form.requestSubmit();
+    };
+    fields.append(textRotation,rotateText);
     const position=element('details',{class:'calculation-details'}),coordinates=element('div',{class:'field-grid'});position.append(element('summary',{},'Posición exacta · opcional'),coordinates);fields.append(position);
     for(const key of obj.kind==='text'?['x','y']:['x1','y1','x2','y2'])field(coordinates,key,({x:'Posición X',y:'Posición Y',x1:'Inicio X',y1:'Inicio Y',x2:'Punta X',y2:'Punta Y'})[key]+' · m',obj[key],{type:'number',step:'.001',min:-100,max:100});
     fields.append(element('p',{class:'fine-print'},'Enter agrega otro renglón; Ctrl + Enter aplica la anotación. Arrastra para mover; las bolitas ajustan la flecha. Se imprime sin sumar materiales. Máximo 300 caracteres y 8 renglones.'));return;
@@ -588,15 +596,20 @@ document.querySelectorAll('[data-tool]').forEach(button => button.onclick=action
   } else setTool(tool);
 }));
 $('properties').onsubmit=action(async event=>{
-  event.preventDefault();const obj=selected(),replacement=clone(obj),data=new FormData(event.target);
-  for (const [key,value] of data) replacement[key]=['label','panel_type','column_type','text','color'].includes(key)?value:Number(value);
-  if(obj.kind==='door' && ![.5,1,1.5,2,3].includes(replacement.width))throw new Error('Usa un módulo de puerta de 0,50, 1, 1,50, 2 o 3 m.');
-  if(obj.kind==='column' && replacement.label===obj.label && /^Columna [CE] \d+$/.test(obj.label))replacement.label=obj.label.replace(/Columna [CE]/,`Columna ${replacement.column_type}`);
-  const candidate=snapshot();if(isAnnotation(obj))candidate.annotations=candidate.annotations.map(o=>o.id===obj.id?replacement:o);
-  else if(obj.kind==='column')candidate.columns=candidate.columns.map(o=>o.id===obj.id?replacement:o);
-  else candidate.objects=candidate.objects.map(o=>o.id===obj.id?replacement:o);
-  await api('/api/estimate/',{method:'POST',body:JSON.stringify({document:candidate})});
-  mutate(()=>{state.document=candidate;});message(replacement.kind==='door'?`${objectName(replacement)}: medidas actualizadas.`:'Medidas actualizadas.');
+  event.preventDefault();const rotateButton=$('rotate-annotation-text'),rotatedText=Boolean(rotateButton?.disabled);
+  try {
+    const obj=selected(),replacement=clone(obj),data=new FormData(event.target);
+    for (const [key,value] of data) replacement[key]=['label','panel_type','column_type','text','color'].includes(key)?value:Number(value);
+    if(obj.kind==='door' && ![.5,1,1.5,2,3].includes(replacement.width))throw new Error('Usa un módulo de puerta de 0,50, 1, 1,50, 2 o 3 m.');
+    if(obj.kind==='column' && replacement.label===obj.label && /^Columna [CE] \d+$/.test(obj.label))replacement.label=obj.label.replace(/Columna [CE]/,`Columna ${replacement.column_type}`);
+    const before=snapshot(),candidate=clone(before);if(isAnnotation(obj))candidate.annotations=candidate.annotations.map(o=>o.id===obj.id?replacement:o);
+    else if(obj.kind==='column')candidate.columns=candidate.columns.map(o=>o.id===obj.id?replacement:o);
+    else candidate.objects=candidate.objects.map(o=>o.id===obj.id?replacement:o);
+    await api('/api/estimate/',{method:'POST',body:JSON.stringify({document:candidate})});
+    if(JSON.stringify(state.document)!==JSON.stringify(before))throw new Error('El croquis cambió durante la validación. Vuelve a aplicar la anotación o las medidas.');
+    mutate(()=>{state.document=candidate;});message(isAnnotation(replacement)?'Anotación actualizada. Puedes deshacer el cambio.':replacement.kind==='door'?`${objectName(replacement)}: medidas actualizadas.`:'Medidas actualizadas.');
+    if(rotatedText)$('rotate-annotation-text')?.focus({preventScroll:true});
+  } finally {if(rotateButton?.isConnected)rotateButton.disabled=false;}
 });
 $('properties').addEventListener('keydown',event=>{
   if(event.target.matches('textarea[name="text"]')&&isAnnotation(selected())&&annotationSubmitKey(event)){
